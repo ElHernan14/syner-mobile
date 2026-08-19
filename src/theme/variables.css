@@ -1,0 +1,24 @@
+/* For information on how to create your own theme, please refer to:
+http://ionicframework.com/docs/theming/ */
+:root {
+  --syner-background: #f5f7fb;
+  --syner-surface: #ffffff;
+  --syner-text: #111827;
+  --syner-text-secondary: #6b7280;
+  --syner-border: #e5e7eb;
+  --syner-primary: #6366f1;
+  --syner-success: #10b981;
+}
+
+html.syner-theme-dark {
+  --syner-background: #0f1117;
+  --syner-surface: #181b23;
+  --syner-text: #f9fafb;
+  --syner-text-secondary: #9ca3af;
+  --syner-border: #292d38;
+  --syner-primary: #818cf8;
+  --syner-success: #34d399;
+  --ion-background-color: var(--syner-background);
+  --ion-text-color: var(--syner-text);
+  --ion-card-background: var(--syner-surface);
+}
