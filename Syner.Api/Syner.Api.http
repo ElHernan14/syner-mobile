@@ -1,0 +1,6 @@
+@Syner.Api_HostAddress = http://localhost:5131
+
+GET {{Syner.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
