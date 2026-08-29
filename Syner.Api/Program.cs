@@ -1,9 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using Syner.Api.Data;
+using Syner.Api.Data.Seed;
+
+const string corsPolicy = "SynerCors";
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicy, policy =>
+    {
+        policy
+            .SetIsOriginAllowed(origin =>
+                origin.StartsWith("http://localhost:") ||
+                origin.StartsWith("http://127.0.0.1:"))
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddOpenApi();
 
@@ -26,8 +42,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.UseCors(corsPolicy);
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SynerDbContext>();
+
+    await SynerDbSeeder.SeedAsync(db);
+}
 
 app.Run();

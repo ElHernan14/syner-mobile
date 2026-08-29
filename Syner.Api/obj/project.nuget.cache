@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "pAMpfJsUUc8=",
+  "dgSpecHash": "BmaG1AUq0yA=",
   "success": true,
   "projectFilePath": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
   "expectedPackageFiles": [
@@ -47,11 +47,7 @@
     "C:\\Users\\hcons\\.nuget\\packages\\system.reflection.metadata\\7.0.0\\system.reflection.metadata.7.0.0.nupkg.sha512",
     "C:\\Users\\hcons\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
     "C:\\Users\\hcons\\.nuget\\packages\\system.text.json\\9.0.0\\system.text.json.9.0.0.nupkg.sha512",
-    "C:\\Users\\hcons\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512",
-    "C:\\Users\\hcons\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.19\\microsoft.netcore.app.ref.9.0.19.nupkg.sha512",
-    "C:\\Users\\hcons\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.19\\microsoft.windowsdesktop.app.ref.9.0.19.nupkg.sha512",
-    "C:\\Users\\hcons\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.19\\microsoft.aspnetcore.app.ref.9.0.19.nupkg.sha512",
-    "C:\\Users\\hcons\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\9.0.19\\microsoft.netcore.app.host.win-x64.9.0.19.nupkg.sha512"
+    "C:\\Users\\hcons\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512"
   ],
   "logs": []
 }

@@ -31,12 +31,12 @@ public sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         builder.Property(x => x.CodigoEntrega)
             .HasMaxLength(50);
 
-        builder.HasOne<Usuario>()
+        builder.HasOne(x => x.Usuario)
             .WithMany()
             .HasForeignKey(x => x.UsuarioId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<Lote>()
+        builder.HasOne(x => x.Lote)
             .WithMany()
             .HasForeignKey(x => x.LoteId)
             .OnDelete(DeleteBehavior.Restrict);

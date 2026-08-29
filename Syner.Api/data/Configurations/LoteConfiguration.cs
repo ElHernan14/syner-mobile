@@ -58,7 +58,7 @@ public sealed class LoteConfiguration : IEntityTypeConfiguration<Lote>
         builder.Property(x => x.ProveedorId)
             .IsRequired();
 
-        builder.HasOne<Proveedor>()
+        builder.HasOne(x => x.Proveedor)
             .WithMany()
             .HasForeignKey(x => x.ProveedorId)
             .OnDelete(DeleteBehavior.Restrict);
