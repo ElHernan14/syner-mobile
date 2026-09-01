@@ -5,8 +5,20 @@
     @actualizar="cargar_proveedores"
   >
     <div class="syner-proveedores">
-      <div v-if="cargando">
+      <div v-if="cargando" class="syner-proveedores__loading">
         <comp-esqueleto :filas="5" />
+      </div>
+
+      <div v-else-if="error" class="syner-proveedores__error">
+        <p>{{ error }}</p>
+
+        <ion-button :fill="'outline'" @click="cargar_proveedores">
+          Reintentar
+        </ion-button>
+      </div>
+
+      <div v-else-if="!hay_proveedores" class="syner-proveedores__empty">
+        <p>No hay proveedores disponibles.</p>
       </div>
 
       <ion-list v-else :inset="true">
@@ -46,29 +58,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted } from "vue";
 
-import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
+import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
 
 import { businessOutline } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 
-import { obtener_proveedores, type Proveedor } from "@/data/proveedor";
+import { useProveedores } from "@/composables/useProveedores";
 
-const proveedores = ref<Proveedor[]>([]);
-const cargando = ref(false);
-
-async function cargar_proveedores() {
-  cargando.value = true;
-
-  try {
-    proveedores.value = await obtener_proveedores();
-  } finally {
-    cargando.value = false;
-  }
-}
+const { proveedores, cargando, error, hay_proveedores, cargar_proveedores } =
+  useProveedores();
 
 onMounted(() => {
   cargar_proveedores();
@@ -80,6 +82,22 @@ onMounted(() => {
   width: min(100% - 32px, 1000px);
   margin: 0 auto;
   padding: 24px 0 40px;
+}
+
+.syner-proveedores__loading {
+  padding: 0;
+}
+
+.syner-proveedores__error,
+.syner-proveedores__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--syner-text-secondary);
 }
 
 .syner-proveedores ion-item {

@@ -5,6 +5,10 @@ const config: CapacitorConfig = {
   appName: "SYNER-BASE",
   webDir: "dist",
   bundledWebRuntime: false,
+
+  server: {
+    androidScheme: "http",
+  },
 };
 
 export default config;

@@ -27,9 +27,9 @@ public sealed class LotesController : ControllerBase
                 descripcion = lote.Descripcion,
                 categoria = lote.Categoria,
 
-                precio_mercado = lote.PrecioMercado,
-                precio_cupo = lote.PrecioCupo,
-                porcentaje_ahorro = lote.PorcentajeAhorro,
+                precio_mercado = (double)lote.PrecioMercado,
+                precio_cupo = (double)lote.PrecioCupo,
+                porcentaje_ahorro = (double)lote.PorcentajeAhorro,
 
                 cantidad_cupos = lote.CantidadCupos,
                 cupos_ocupados = lote.CuposOcupados,

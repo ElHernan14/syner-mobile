@@ -5,8 +5,20 @@
     @actualizar="cargar_pedidos"
   >
     <div class="syner-pedidos">
-      <div v-if="cargando">
+      <div v-if="cargando" class="syner-pedidos__loading">
         <comp-esqueleto :filas="5" />
+      </div>
+
+      <div v-else-if="error" class="syner-pedidos__error">
+        <p>{{ error }}</p>
+
+        <ion-button :fill="'outline'" @click="cargar_pedidos">
+          Reintentar
+        </ion-button>
+      </div>
+
+      <div v-else-if="!hay_pedidos" class="syner-pedidos__empty">
+        <p>No hay pedidos disponibles.</p>
       </div>
 
       <ion-list v-else :inset="true">
@@ -14,15 +26,16 @@
           <ion-icon slot="start" :icon="receiptOutline" />
 
           <ion-label>
-            <h2>
-              {{ pedido.id }}
-            </h2>
+            <h2>Pedido #{{ pedido.id }}</h2>
 
-            <p>Lote: {{ pedido.loteId }}</p>
+            <p>
+              Lote:
+              {{ pedido.lote.nombre }}
+            </p>
 
             <p>
               Cliente:
-              {{ pedido.usuarioId ?? "Sin cliente asociado" }}
+              {{ pedido.usuario.nombre }}
             </p>
 
             <p>
@@ -49,29 +62,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted } from "vue";
 
-import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
+import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
 
 import { receiptOutline } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 
-import { obtener_pedidos, type Pedido } from "@/data/pedido";
+import { usePedidos } from "@/composables/usePedidos";
 
-const pedidos = ref<Pedido[]>([]);
-const cargando = ref(false);
-
-async function cargar_pedidos() {
-  cargando.value = true;
-
-  try {
-    pedidos.value = await obtener_pedidos();
-  } finally {
-    cargando.value = false;
-  }
-}
+const { pedidos, cargando, error, hay_pedidos, cargar_pedidos } = usePedidos();
 
 onMounted(() => {
   cargar_pedidos();
@@ -83,6 +85,22 @@ onMounted(() => {
   width: min(100% - 32px, 1000px);
   margin: 0 auto;
   padding: 24px 0 40px;
+}
+
+.syner-pedidos__loading {
+  padding: 0;
+}
+
+.syner-pedidos__error,
+.syner-pedidos__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--syner-text-secondary);
 }
 
 .syner-pedidos ion-item {

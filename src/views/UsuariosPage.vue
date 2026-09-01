@@ -5,8 +5,20 @@
     @actualizar="cargar_usuarios"
   >
     <div class="syner-usuarios">
-      <div v-if="cargando">
+      <div v-if="cargando" class="syner-usuarios__loading">
         <comp-esqueleto :filas="5" />
+      </div>
+
+      <div v-else-if="error" class="syner-usuarios__error">
+        <p>{{ error }}</p>
+
+        <ion-button :fill="'outline'" @click="cargar_usuarios">
+          Reintentar
+        </ion-button>
+      </div>
+
+      <div v-else-if="!hay_usuarios" class="syner-usuarios__empty">
+        <p>No hay usuarios disponibles.</p>
       </div>
 
       <ion-list v-else :inset="true">
@@ -31,6 +43,7 @@
               :class="{
                 'syner-usuarios__estado--verificado':
                   usuario.estado === 'verificado',
+
                 'syner-usuarios__estado--bloqueado':
                   usuario.estado === 'bloqueado',
               }"
@@ -50,29 +63,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted } from "vue";
 
-import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
+import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
 
 import { personCircleOutline } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 
-import { obtener_usuarios, type Usuario } from "@/data/usuario";
+import { useUsuarios } from "@/composables/useUsuarios";
 
-const usuarios = ref<Usuario[]>([]);
-const cargando = ref(false);
-
-async function cargar_usuarios() {
-  cargando.value = true;
-
-  try {
-    usuarios.value = await obtener_usuarios();
-  } finally {
-    cargando.value = false;
-  }
-}
+const { usuarios, cargando, error, hay_usuarios, cargar_usuarios } =
+  useUsuarios();
 
 onMounted(() => {
   cargar_usuarios();
@@ -84,6 +87,22 @@ onMounted(() => {
   width: min(100% - 32px, 1000px);
   margin: 0 auto;
   padding: 24px 0 40px;
+}
+
+.syner-usuarios__loading {
+  padding: 0;
+}
+
+.syner-usuarios__error,
+.syner-usuarios__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--syner-text-secondary);
 }
 
 .syner-usuarios ion-item {

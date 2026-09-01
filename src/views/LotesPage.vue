@@ -9,6 +9,18 @@
         <comp-esqueleto :filas="5" />
       </div>
 
+      <div v-else-if="error" class="syner-lotes__error">
+        <p>{{ error }}</p>
+
+        <ion-button :fill="'outline'" @click="cargar_lotes">
+          Reintentar
+        </ion-button>
+      </div>
+
+      <div v-else-if="!hay_lotes" class="syner-lotes__empty">
+        <p>No hay lotes disponibles.</p>
+      </div>
+
       <ion-list v-else :inset="true">
         <ion-item v-for="lote in lotes" :key="lote.id" :lines="'full'">
           <ion-label>
@@ -60,27 +72,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted } from "vue";
 
-import { IonItem, IonLabel, IonList, IonProgressBar } from "@ionic/vue";
+import {
+  IonButton,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonProgressBar,
+} from "@ionic/vue";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 
-import { obtener_lotes, type Lote } from "@/data/lote";
+import { useLotes } from "@/composables/useLotes";
 
-const lotes = ref<Lote[]>([]);
-const cargando = ref(false);
-
-async function cargar_lotes() {
-  cargando.value = true;
-
-  try {
-    lotes.value = await obtener_lotes();
-  } finally {
-    cargando.value = false;
-  }
-}
+const { lotes, cargando, error, hay_lotes, cargar_lotes } = useLotes();
 
 onMounted(() => {
   cargar_lotes();
@@ -96,6 +103,18 @@ onMounted(() => {
 
 .syner-lotes__loading {
   padding: 0;
+}
+
+.syner-lotes__error,
+.syner-lotes__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--syner-text-secondary);
 }
 
 .syner-lotes__prices {

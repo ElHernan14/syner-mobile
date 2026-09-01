@@ -75,6 +75,15 @@ const navegacion: ItemNavegacion[] = [
     orden: 5,
     componente: () => import("@/views/UsuariosPage.vue"),
   },
+  {
+    id: "mi-cuenta",
+    titulo: "Mi Cuenta",
+    ruta: "/app/mi-cuenta",
+    icono: "person-circle-outline",
+    grupo_menu: "configuracion",
+    orden: 6,
+    componente: () => import("@/views/MiCuentaPage.vue"),
+  },
 ];
 
 function obtener_grupos_menu(): GrupoMenu[] {
