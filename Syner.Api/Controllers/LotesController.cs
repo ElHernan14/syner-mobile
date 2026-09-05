@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Syner.Api.Data;
+using Syner.Api.Domain.DTOs.Lotes;
+using Syner.Api.Domain.Entities;
 
 namespace Syner.Api.Controllers;
 
@@ -39,12 +41,12 @@ public sealed class LotesController : ControllerBase
         // Filtro por término
         if (!string.IsNullOrWhiteSpace(paginacion.Termino))
         {
-            var termino = paginacion.Termino.Trim();
+            var termino = paginacion.Termino.ToLower().Trim();
 
             consulta = consulta.Where(lote =>
-                lote.Nombre.Contains(termino) ||
-                lote.Descripcion.Contains(termino) ||
-                lote.Categoria.Contains(termino));
+                lote.Nombre.ToLower().Contains(termino) ||
+                lote.Descripcion.ToLower().Contains(termino) ||
+                lote.Categoria.ToLower().Contains(termino));
         }
 
         // Ordenamiento
@@ -109,5 +111,90 @@ public sealed class LotesController : ControllerBase
         };
 
         return Ok(resultado);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Crear(
+        CrearLoteRequest request,
+        CancellationToken cancellationToken)
+    {
+        var proveedorExiste = await _db.Proveedores
+            .AnyAsync(
+                proveedor => proveedor.Id == request.ProveedorId,
+                cancellationToken
+            );
+
+        if (!proveedorExiste)
+        {
+            return BadRequest(new
+            {
+                mensaje = "El proveedor indicado no existe."
+            });
+        }
+
+        if (request.FechaFin <= request.FechaInicio)
+        {
+            return BadRequest(new
+            {
+                mensaje = "La fecha de fin debe ser posterior a la fecha de inicio."
+            });
+        }
+
+        if (request.PrecioCupo >= request.PrecioMercado)
+        {
+            return BadRequest(new
+            {
+                mensaje = "El precio de cupo debe ser menor al precio de mercado."
+            });
+        }
+
+        var lote = new Lote
+        {
+            Nombre = request.Nombre,
+            Descripcion = request.Descripcion,
+            Categoria = request.Categoria,
+            PrecioMercado = request.PrecioMercado,
+            PrecioCupo = request.PrecioCupo,
+            PorcentajeAhorro = request.PorcentajeAhorro,
+            CantidadCupos = request.CantidadCupos,
+            CuposOcupados = 0,
+            FechaInicio = request.FechaInicio,
+            FechaFin = request.FechaFin,
+            Estado = "borrador",
+            ProveedorId = request.ProveedorId
+        };
+
+        _db.Lotes.Add(lote);
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return CreatedAtAction(
+            nameof(ObtenerPorId),
+            new { id = lote.Id },
+            lote
+        );
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> ObtenerPorId(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var lote = await _db.Lotes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                lote => lote.Id == id,
+                cancellationToken
+            );
+
+        if (lote is null)
+        {
+            return NotFound(new
+            {
+                mensaje = "El lote no existe."
+            });
+        }
+
+        return Ok(lote);
     }
 }

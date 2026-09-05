@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Syner.Api.Domain.DTOs.Lotes;
 
-public sealed class CrearLoteRequest
+public sealed class ActualizarLoteRequest
 {
     [Required(ErrorMessage = "El nombre es obligatorio.")]
     [MaxLength(150, ErrorMessage = "El nombre no puede superar los 150 caracteres.")]
