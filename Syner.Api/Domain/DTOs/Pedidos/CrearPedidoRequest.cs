@@ -1,0 +1,26 @@
+using System.ComponentModel.DataAnnotations;
+using Syner.Api.Data.Validation;
+
+namespace Syner.Api.Domain.DTOs.Pedidos;
+
+public sealed class CrearPedidoRequest : IValidable
+{
+    [Range(1, long.MaxValue, ErrorMessage = "El usuario es obligatorio.")]
+    public long UsuarioId { get; set; }
+
+    [Range(1, long.MaxValue, ErrorMessage = "El lote es obligatorio.")]
+    public long LoteId { get; set; }
+
+    [Required(ErrorMessage = "La número de seguimiento es obligatorio.")]
+    [MaxLength(100, ErrorMessage = "El número de seguimiento no puede superar los 100 caracteres.")]
+    public string? NumeroSeguimiento { get; set; }
+
+    [Required(ErrorMessage = "El código de entrega es obligatorio.")]
+    [MaxLength(50, ErrorMessage = "El código de entrega no puede superar los 50 caracteres.")]
+    public string? CodigoEntrega { get; set; }
+
+    public ResultadoValidacion Validar()
+    {
+        return ValidadorDto.Validar(this);
+    }
+}

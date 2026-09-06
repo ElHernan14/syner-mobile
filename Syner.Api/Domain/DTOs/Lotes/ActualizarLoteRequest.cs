@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using Syner.Api.Data.Validation;
 
 namespace Syner.Api.Domain.DTOs.Lotes;
 
-public sealed class ActualizarLoteRequest
+public sealed class ActualizarLoteRequest : IValidable
 {
     [Required(ErrorMessage = "El nombre es obligatorio.")]
     [MaxLength(150, ErrorMessage = "El nombre no puede superar los 150 caracteres.")]
@@ -36,4 +37,9 @@ public sealed class ActualizarLoteRequest
 
     [Required(ErrorMessage = "El proveedor es obligatorio.")]
     public int ProveedorId { get; set; }
+
+    public ResultadoValidacion Validar()
+    {
+        return ValidadorDto.Validar(this);
+    }
 }
