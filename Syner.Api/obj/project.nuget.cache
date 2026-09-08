@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "JpPIAvd+kVE=",
+  "dgSpecHash": "BmaG1AUq0yA=",
   "success": true,
-  "projectFilePath": "c:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
+  "projectFilePath": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\hcons\\.nuget\\packages\\efcore.namingconventions\\9.0.0\\efcore.namingconventions.9.0.0.nupkg.sha512",
     "C:\\Users\\hcons\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",

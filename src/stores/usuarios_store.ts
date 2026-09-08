@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
-import type { Usuario } from "@/data/usuario";
+import type { Usuario } from "@/models/usuario";
 import { obtener_usuarios } from "@/services/usuarios_service";
 
 export const useUsuariosStore = defineStore("usuarios", () => {

@@ -1,6 +1,6 @@
 import { obtener } from "@/services/ajax_service";
 
-import type { Pedido } from "@/data/pedido";
+import type { Pedido } from "@/models/pedido";
 
 interface PedidoApi {
   id: number;

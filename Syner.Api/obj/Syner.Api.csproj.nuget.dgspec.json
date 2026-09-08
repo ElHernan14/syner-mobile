@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj": {}
+    "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj": {}
   },
   "projects": {
-    "c:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj": {
+    "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
+        "projectUniqueName": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
         "projectName": "Syner.Api",
-        "projectPath": "c:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
+        "projectPath": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
         "packagesPath": "C:\\Users\\hcons\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\obj\\",
+        "outputPath": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\hcons\\AppData\\Roaming\\NuGet\\NuGet.Config",

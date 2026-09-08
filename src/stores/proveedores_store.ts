@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
-import type { Proveedor } from "@/data/proveedor";
+import type { Proveedor } from "@/models/proveedor";
 import { obtener_proveedores } from "@/services/proveedores_service";
 
 export const useProveedoresStore = defineStore("proveedores", () => {

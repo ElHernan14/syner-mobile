@@ -1,6 +1,6 @@
 import { obtener } from "@/services/ajax_service";
 
-import type { Proveedor } from "@/data/proveedor";
+import type { Proveedor } from "@/models/proveedor";
 
 interface ProveedorApi {
   id: number;

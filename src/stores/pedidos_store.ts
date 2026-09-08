@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
-import type { Pedido } from "@/data/pedido";
+import type { Pedido } from "@/models/pedido";
 import { obtener_pedidos } from "@/services/pedidos_service";
 
 export const usePedidosStore = defineStore("pedidos", () => {
