@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
 using Syner.Api.Domain.Entities;
 
 namespace Syner.Api.Data.Configurations;
@@ -31,8 +32,11 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
             .HasMaxLength(20)
             .IsRequired();
 
-        builder.Property(x => x.Rol)
-            .HasMaxLength(20)
+        builder.Property(x => x.RolId)
+            .IsRequired(false);
+
+        builder.Property(x => x.PasswordHash)
+            .HasMaxLength(255)
             .IsRequired();
 
         builder.Property(x => x.Estado)
@@ -44,5 +48,15 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 
         builder.HasIndex(x => x.Dni)
             .IsUnique();
+
+        builder.HasOne(x => x.Rol)
+            .WithMany(x => x.Usuarios)
+            .HasForeignKey(x => x.RolId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasMany(x => x.RefreshTokens)
+            .WithOne(x => x.Usuario)
+            .HasForeignKey(x => x.UsuarioId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

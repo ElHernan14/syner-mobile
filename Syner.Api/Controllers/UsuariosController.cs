@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using Syner.Api.Data;
 using Syner.Api.Data.Responses;
 using Syner.Api.Data.Validation;
@@ -7,18 +9,24 @@ using Syner.Api.Domain.DTOs.Usuarios;
 using Syner.Api.Domain.Entities;
 using Syner.Api.Domain.Enums;
 using Syner.Api.Domain.States;
+using Syner.Api.Services;
 
 namespace Syner.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/usuarios")]
 public sealed class UsuariosController : ControllerBase
 {
     private readonly SynerDbContext _db;
+    private readonly PasswordService _passwordService;
 
-    public UsuariosController(SynerDbContext db)
+    public UsuariosController(
+        SynerDbContext db,
+        PasswordService passwordService)
     {
         _db = db;
+        _passwordService = passwordService;
     }
 
     [HttpGet]
@@ -41,6 +49,7 @@ public sealed class UsuariosController : ControllerBase
 
         var consulta = _db.Usuarios
             .AsNoTracking()
+            .Include(usuario => usuario.Rol)
             .AsQueryable();
 
         // Filtro por término
@@ -76,10 +85,10 @@ public sealed class UsuariosController : ControllerBase
                 consulta.OrderByDescending(usuario => usuario.Dni),
 
             "rol" =>
-                consulta.OrderBy(usuario => usuario.Rol),
+                consulta.OrderBy(usuario => usuario.Rol!.Nombre),
 
             "rol_desc" =>
-                consulta.OrderByDescending(usuario => usuario.Rol),
+                consulta.OrderByDescending(usuario => usuario.Rol!.Nombre),
 
             "estado" =>
                 consulta.OrderBy(usuario => usuario.Estado),
@@ -107,7 +116,9 @@ public sealed class UsuariosController : ControllerBase
                 correo = usuario.Correo,
                 telefono = usuario.Telefono,
                 dni = usuario.Dni,
-                rol = usuario.Rol,
+                rol = usuario.Rol != null
+                    ? usuario.Rol.Nombre
+                    : null,
                 estado = usuario.Estado
             })
             .ToListAsync(cancellationToken);
@@ -129,6 +140,7 @@ public sealed class UsuariosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Crear(
         CrearUsuarioRequest request,
         CancellationToken cancellationToken)
@@ -187,13 +199,28 @@ public sealed class UsuariosController : ControllerBase
             );
         }
 
+        var rol = await _db.Roles
+            .FirstOrDefaultAsync(
+                x => x.Id == request.RolId,
+                cancellationToken
+            );
+
+        if (rol is null)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "El rol indicado no existe."
+            );
+        }
+
         var usuario = new Usuario
         {
             Nombre = request.Nombre,
             Correo = request.Correo,
             Telefono = request.Telefono,
             Dni = request.Dni,
-            Rol = request.Rol,
+            RolId = rol.Id,
+            PasswordHash = _passwordService.Hash(request.Password),
             Estado = EstadoUsuario.Pendiente
                 .ToString()
                 .ToLowerInvariant()
@@ -210,7 +237,7 @@ public sealed class UsuariosController : ControllerBase
             correo = usuario.Correo,
             telefono = usuario.Telefono,
             dni = usuario.Dni,
-            rol = usuario.Rol,
+            rol = rol.Nombre,
             estado = usuario.Estado
         };
 
@@ -230,6 +257,7 @@ public sealed class UsuariosController : ControllerBase
     {
         var usuario = await _db.Usuarios
             .AsNoTracking()
+            .Include(x => x.Rol)
             .FirstOrDefaultAsync(
                 usuario => usuario.Id == id,
                 cancellationToken
@@ -250,7 +278,7 @@ public sealed class UsuariosController : ControllerBase
             correo = usuario.Correo,
             telefono = usuario.Telefono,
             dni = usuario.Dni,
-            rol = usuario.Rol,
+            rol = usuario.Rol?.Nombre,
             estado = usuario.Estado
         };
 
@@ -262,6 +290,7 @@ public sealed class UsuariosController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Actualizar(
         int id,
         ActualizarUsuarioRequest request,
@@ -292,6 +321,7 @@ public sealed class UsuariosController : ControllerBase
         }
 
         var usuario = await _db.Usuarios
+            .Include(x => x.Rol)
             .FirstOrDefaultAsync(
                 usuario => usuario.Id == id,
                 cancellationToken
@@ -362,11 +392,33 @@ public sealed class UsuariosController : ControllerBase
             );
         }
 
+        var rol = await _db.Roles
+            .FirstOrDefaultAsync(
+                x => x.Id == request.RolId,
+                cancellationToken
+            );
+
+        if (rol is null)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "El rol indicado no existe."
+            );
+        }
+
         usuario.Nombre = request.Nombre;
         usuario.Correo = request.Correo;
         usuario.Telefono = request.Telefono;
         usuario.Dni = request.Dni;
-        usuario.Rol = request.Rol;
+        usuario.RolId = rol.Id;
+
+        // La contraseña solamente se modifica si se envía una nueva.
+        if (!string.IsNullOrWhiteSpace(request.Password))
+        {
+            usuario.PasswordHash = _passwordService.Hash(
+                request.Password
+            );
+        }
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -377,7 +429,7 @@ public sealed class UsuariosController : ControllerBase
             correo = usuario.Correo,
             telefono = usuario.Telefono,
             dni = usuario.Dni,
-            rol = usuario.Rol,
+            rol = rol.Nombre,
             estado = usuario.Estado
         };
 
@@ -389,6 +441,7 @@ public sealed class UsuariosController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Eliminar(
         int id,
         CancellationToken cancellationToken)

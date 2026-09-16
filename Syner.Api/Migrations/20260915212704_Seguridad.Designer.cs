@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Syner.Api.Data;
 
@@ -11,9 +12,11 @@ using Syner.Api.Data;
 namespace Syner.Api.Migrations
 {
     [DbContext(typeof(SynerDbContext))]
-    partial class SynerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915212704_Seguridad")]
+    partial class Seguridad
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -146,41 +149,6 @@ namespace Syner.Api.Migrations
                     b.ToTable("proveedores", (string)null);
                 });
 
-            modelBuilder.Entity("Syner.Api.Domain.Entities.RefreshToken", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime>("ExpiraEn")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("RevocadoEn")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
-
-                    b.Property<long>("UsuarioId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("refresh_tokens", (string)null);
-                });
-
             modelBuilder.Entity("Syner.Api.Domain.Entities.Rol", b =>
                 {
                     b.Property<long>("Id")
@@ -291,17 +259,6 @@ namespace Syner.Api.Migrations
                     b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("Syner.Api.Domain.Entities.RefreshToken", b =>
-                {
-                    b.HasOne("Syner.Api.Domain.Entities.Usuario", "Usuario")
-                        .WithMany("RefreshTokens")
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
-                });
-
             modelBuilder.Entity("Syner.Api.Domain.Entities.Usuario", b =>
                 {
                     b.HasOne("Syner.Api.Domain.Entities.Rol", "Rol")
@@ -315,11 +272,6 @@ namespace Syner.Api.Migrations
             modelBuilder.Entity("Syner.Api.Domain.Entities.Rol", b =>
                 {
                     b.Navigation("Usuarios");
-                });
-
-            modelBuilder.Entity("Syner.Api.Domain.Entities.Usuario", b =>
-                {
-                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }

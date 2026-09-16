@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using Syner.Api.Domain.Entities;
 
 namespace Syner.Api.Data;
@@ -11,6 +12,10 @@ public sealed class SynerDbContext : DbContext
     }
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
+
+    public DbSet<Rol> Roles => Set<Rol>();
+
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
 

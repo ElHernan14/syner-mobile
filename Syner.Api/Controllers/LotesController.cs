@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using Syner.Api.Data;
 using Syner.Api.Data.Responses;
 using Syner.Api.Data.Validation;
@@ -10,6 +12,7 @@ using Syner.Api.Domain.States;
 
 namespace Syner.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/lotes")]
 public sealed class LotesController : ControllerBase
@@ -135,6 +138,7 @@ public sealed class LotesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Crear(
         CrearLoteRequest request,
         CancellationToken cancellationToken)
@@ -255,6 +259,7 @@ public sealed class LotesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Actualizar(
         int id,
         ActualizarLoteRequest request,
@@ -401,6 +406,7 @@ public sealed class LotesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Eliminar(
         int id,
         CancellationToken cancellationToken)

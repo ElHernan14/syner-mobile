@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj": {}
+    "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\syner.api\\Syner.Api.csproj": {}
   },
   "projects": {
-    "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj": {
+    "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\syner.api\\Syner.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
+        "projectUniqueName": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\syner.api\\Syner.Api.csproj",
         "projectName": "Syner.Api",
-        "projectPath": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\Syner.Api.csproj",
+        "projectPath": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\syner.api\\Syner.Api.csproj",
         "packagesPath": "C:\\Users\\hcons\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\Syner.Api\\obj\\",
+        "outputPath": "C:\\Users\\hcons\\OneDrive\\Desktop\\TUDS-FINAL\\DESARROLLO-AVANZADO-MOBILE\\SYNER-PROYECTO\\syner.api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\hcons\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -49,6 +49,10 @@
           "targetAlias": "net9.0",
           "dependencies": {
             "EFCore.NamingConventions": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
               "version": "[9.0.0, )"
             },

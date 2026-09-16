@@ -10,7 +10,14 @@ public sealed class Usuario : EntityBase
 
     public string Dni { get; set; } = string.Empty;
 
-    public string Rol { get; set; } = "usuario";
+    public long? RolId { get; set; }
+
+    public Rol? Rol { get; set; }
+
+    public string PasswordHash { get; set; } = string.Empty;
 
     public string Estado { get; set; } = "pendiente";
+
+    public ICollection<RefreshToken> RefreshTokens { get; set; }
+        = new List<RefreshToken>();
 }

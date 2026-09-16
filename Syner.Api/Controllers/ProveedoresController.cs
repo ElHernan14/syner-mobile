@@ -1,9 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 using Microsoft.EntityFrameworkCore;
+
 using Syner.Api.Data;
 
 namespace Syner.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/proveedores")]
 public sealed class ProveedoresController : ControllerBase

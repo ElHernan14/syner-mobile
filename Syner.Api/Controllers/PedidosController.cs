@@ -1,15 +1,25 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 using Microsoft.EntityFrameworkCore;
+
 using Syner.Api.Data;
+
 using Syner.Api.Data.Responses;
+
 using Syner.Api.Data.Validation;
+
 using Syner.Api.Domain.DTOs.Pedidos;
+
 using Syner.Api.Domain.Entities;
+
 using Syner.Api.Domain.Enums;
+
 using Syner.Api.Domain.States;
 
 namespace Syner.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/pedidos")]
 public sealed class PedidosController : ControllerBase
@@ -130,6 +140,7 @@ public sealed class PedidosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Crear(
         CrearPedidoRequest request,
         CancellationToken cancellationToken)
@@ -207,12 +218,14 @@ public sealed class PedidosController : ControllerBase
             estado = pedido.Estado,
             numero_seguimiento = pedido.NumeroSeguimiento,
             codigo_entrega = pedido.CodigoEntrega,
+
             usuario = new
             {
                 id = usuario.Id,
                 nombre = usuario.Nombre,
                 correo = usuario.Correo
             },
+
             lote = new
             {
                 id = lote.Id,
@@ -279,6 +292,7 @@ public sealed class PedidosController : ControllerBase
     }
 
     [HttpPut("{id:long}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Actualizar(
         long id,
         ActualizarPedidoRequest request,
@@ -386,12 +400,14 @@ public sealed class PedidosController : ControllerBase
             estado = pedido.Estado,
             numero_seguimiento = pedido.NumeroSeguimiento,
             codigo_entrega = pedido.CodigoEntrega,
+
             usuario = new
             {
                 id = usuario.Id,
                 nombre = usuario.Nombre,
                 correo = usuario.Correo
             },
+
             lote = new
             {
                 id = lote.Id,
@@ -409,6 +425,7 @@ public sealed class PedidosController : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Eliminar(
         long id,
         CancellationToken cancellationToken)

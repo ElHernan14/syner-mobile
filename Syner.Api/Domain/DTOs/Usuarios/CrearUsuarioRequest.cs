@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 using Syner.Api.Data.Validation;
 
 namespace Syner.Api.Domain.DTOs.Usuarios;
@@ -23,8 +24,12 @@ public sealed class CrearUsuarioRequest : IValidable
     public string Dni { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "El rol es obligatorio.")]
-    [MaxLength(50, ErrorMessage = "El rol no puede superar los 50 caracteres.")]
-    public string Rol { get; set; } = string.Empty;
+    [Range(1, long.MaxValue, ErrorMessage = "El rol debe ser un ID válido mayor a 0.")]
+    public long RolId { get; set; }
+
+    [Required(ErrorMessage = "La contraseña es obligatoria.")]
+    [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
+    public string Password { get; set; } = string.Empty;
 
     public ResultadoValidacion Validar()
     {

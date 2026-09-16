@@ -123,3 +123,11 @@ C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROY
 C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\Syner.Api\obj\Debug\net9.0\Syner.Api.genruntimeconfig.cache
 C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\Syner.Api\obj\Debug\net9.0\ref\Syner.Api.dll
 C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\Syner.Api\bin\Debug\net9.0\dotnet-tools.json
+C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.dll
+C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\System.IdentityModel.Tokens.Jwt.dll
