@@ -1,5 +1,7 @@
 import { obtener_api_url } from "@/config/debug";
 
+import { useAuthStore } from "@/stores/auth_store";
+
 const api_url = obtener_api_url();
 
 export class ApiError extends Error {
@@ -51,22 +53,78 @@ async function obtener_error_api(response: Response): Promise<ApiError> {
   }
 }
 
+function es_endpoint_auth(endpoint: string): boolean {
+  const endpoint_normalizado = endpoint.replace(/^\/+/, "").toLowerCase();
+
+  return (
+    endpoint_normalizado === "auth/login" ||
+    endpoint_normalizado === "auth/refresh" ||
+    endpoint_normalizado === "auth/logout"
+  );
+}
+
+let refresh_en_curso: Promise<void> | null = null;
+
+async function ejecutar_refresh(): Promise<void> {
+  const auth_store = useAuthStore();
+
+  if (!auth_store.refresh_token) {
+    throw new Error("No existe un refresh token.");
+  }
+
+  if (!refresh_en_curso) {
+    refresh_en_curso = auth_store
+      .refrescar_sesion()
+      .then(() => undefined)
+      .finally(() => {
+        refresh_en_curso = null;
+      });
+  }
+
+  await refresh_en_curso;
+}
+
+async function ejecutar_request(
+  endpoint: string,
+  opciones: RequestInit,
+): Promise<Response> {
+  const auth_store = useAuthStore();
+
+  const headers = new Headers(opciones.headers);
+
+  headers.set("Content-Type", "application/json");
+
+  if (auth_store.access_token) {
+    headers.set("Authorization", `Bearer ${auth_store.access_token}`);
+  } else {
+    headers.delete("Authorization");
+  }
+
+  try {
+    return await fetch(construir_url(endpoint), {
+      ...opciones,
+      headers,
+    });
+  } catch {
+    throw new Error("No se pudo establecer conexión con la API.");
+  }
+}
+
 async function ejecutar<T>(
   endpoint: string,
   opciones: RequestInit,
 ): Promise<T> {
-  let response: Response;
+  let response = await ejecutar_request(endpoint, opciones);
 
-  try {
-    response = await fetch(construir_url(endpoint), {
-      ...opciones,
-      headers: {
-        "Content-Type": "application/json",
-        ...(opciones.headers ?? {}),
-      },
-    });
-  } catch {
-    throw new Error("No se pudo establecer conexión con la API.");
+  if (response.status === 401 && !es_endpoint_auth(endpoint)) {
+    try {
+      console.log("token expirado ! - Se ejecuta refresh");
+      await ejecutar_refresh();
+
+      response = await ejecutar_request(endpoint, opciones);
+    } catch {
+      throw new ApiError("La sesión expiró. Iniciá sesión nuevamente.", 401);
+    }
   }
 
   if (!response.ok) {
@@ -77,6 +135,7 @@ async function ejecutar<T>(
     return undefined as T;
   }
 
+  console.log("token no expirado !");
   return response.json() as Promise<T>;
 }
 

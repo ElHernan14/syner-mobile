@@ -1,5 +1,7 @@
 import type { Component } from "vue";
 
+import type { RolUsuario } from "@/models/usuario";
+
 export interface GrupoMenu {
   id: string;
   titulo: string;
@@ -14,6 +16,7 @@ export interface ItemNavegacion {
   grupo_menu: string;
   orden: number;
   componente: () => Promise<{ default: Component }>;
+  roles?: RolUsuario[];
 }
 
 const grupos_menu: GrupoMenu[] = [
@@ -47,6 +50,7 @@ const navegacion: ItemNavegacion[] = [
     grupo_menu: "operacion",
     orden: 2,
     componente: () => import("@/views/LotesPage.vue"),
+    roles: ["admin"],
   },
   {
     id: "pedidos",
@@ -74,6 +78,7 @@ const navegacion: ItemNavegacion[] = [
     grupo_menu: "configuracion",
     orden: 5,
     componente: () => import("@/views/UsuariosPage.vue"),
+    roles: ["admin"],
   },
   {
     id: "mi-cuenta",
@@ -90,8 +95,17 @@ function obtener_grupos_menu(): GrupoMenu[] {
   return [...grupos_menu].sort((a, b) => a.orden - b.orden);
 }
 
-function obtener_tabs(): ItemNavegacion[] {
+function obtener_tabs(rol?: RolUsuario | null): ItemNavegacion[] {
   return navegacion
+    .filter((item) => {
+      if (!item.roles || item.roles.length === 0) {
+        return true;
+      }
+
+      return rol !== null && rol !== undefined
+        ? item.roles.includes(rol)
+        : false;
+    })
     .filter((item) => item.grupo_menu === "operacion")
     .sort((a, b) => a.orden - b.orden);
 }

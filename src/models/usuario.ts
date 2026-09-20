@@ -8,7 +8,7 @@ export interface Usuario {
   correo: string;
   telefono?: string;
   dni: string;
-  rol: RolUsuario;
+  rol: RolUsuario | null;
   estado: EstadoUsuario;
   avatar?: string | null;
   direccion?: string;

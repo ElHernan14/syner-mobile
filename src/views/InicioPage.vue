@@ -4,7 +4,7 @@
       <section class="syner-inicio__hero">
         <p class="syner-inicio__eyebrow">PROYECTO ACADÉMICO · 2026</p>
 
-        <h1>HERNÁN CONSTANTE</h1>
+        <h1>{{ nombre_usuario }}</h1>
 
         <p class="syner-inicio__description">
           SYNER es una plataforma de compras colectivas que permite acceder a
@@ -22,7 +22,7 @@
       </section>
 
       <ion-list class="syner-inicio__list" :inset="true">
-        <ion-item>
+        <ion-item v-if="es_admin">
           <ion-icon slot="start" :icon="layersOutline" />
 
           <ion-label>
@@ -49,7 +49,7 @@
           </ion-label>
         </ion-item>
 
-        <ion-item>
+        <ion-item v-if="es_admin">
           <ion-icon slot="start" :icon="peopleOutline" />
 
           <ion-label>
@@ -63,6 +63,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
+
 import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
 
 import {
@@ -73,6 +75,18 @@ import {
 } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
+
+import { useAuthStore } from "@/stores/auth_store";
+
+const auth_store = useAuthStore();
+
+const nombre_usuario = computed(() => {
+  return auth_store.usuario?.nombre ?? "Usuario";
+});
+
+const es_admin = computed(() => {
+  return auth_store.rol === "admin";
+});
 </script>
 
 <style scoped>
