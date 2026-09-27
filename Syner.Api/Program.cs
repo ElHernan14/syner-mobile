@@ -9,6 +9,8 @@ using Syner.Api.Configuration;
 using Syner.Api.Data;
 using Syner.Api.Data.Seed;
 using Syner.Api.Services;
+using QuestPDF.Infrastructure;
+using Syner.Api.Services.Lotes;
 
 const string corsPolicy = "SynerCors";
 
@@ -101,6 +103,8 @@ builder.Services.AddDbContext<SynerDbContext>(options =>
 builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
+builder.Services.AddScoped<LotePdfService>();
+builder.Services.AddScoped<LoteQrService>();
 
 var app = builder.Build();
 
@@ -111,10 +115,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(corsPolicy);
 
+app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+QuestPDF.Settings.License =
+    QuestPDF.Infrastructure.LicenseType.Community;
 
 using (var scope = app.Services.CreateScope())
 {

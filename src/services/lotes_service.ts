@@ -1,5 +1,6 @@
 import {
   obtener,
+  obtener_blob,
   crear,
   actualizar,
   eliminar,
@@ -327,6 +328,30 @@ export async function eliminar_lote(id: number): Promise<void> {
 
   try {
     await eliminar(`lotes/${id}`);
+  } catch (error) {
+    return manejarError(error);
+  }
+}
+
+export async function obtener_pdf_lote(id: number): Promise<Blob> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("El identificador del lote no es válido.");
+  }
+
+  try {
+    return await obtener_blob(`lotes/${id}/pdf`);
+  } catch (error) {
+    return manejarError(error);
+  }
+}
+
+export async function obtener_qr_lote(id: number): Promise<Blob> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("El identificador del lote no es válido.");
+  }
+
+  try {
+    return await obtener_blob(`lotes/${id}/qr`);
   } catch (error) {
     return manejarError(error);
   }

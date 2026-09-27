@@ -20,4 +20,6 @@ public sealed class Usuario : EntityBase
 
     public ICollection<RefreshToken> RefreshTokens { get; set; }
         = new List<RefreshToken>();
+
+    public string? Avatar { get; set; }
 }

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Syner.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+76d2bb0e42729d69e17645f8a73468d146bf484e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9d522100bbb5688ae5857339d2901c43084acbbd")]
 [assembly: System.Reflection.AssemblyProductAttribute("Syner.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Syner.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,4 +1,4 @@
-import { obtener } from "@/services/ajax_service";
+import { obtener, crear_form_data } from "@/services/ajax_service";
 
 import type { ApiResponse } from "@/models/api_response";
 import type { ResultadoPaginado } from "@/models/paginacion";
@@ -14,6 +14,10 @@ interface UsuarioApi {
   estado: string;
   avatar?: string | null;
   direccion?: string | null;
+}
+
+export interface ActualizarAvatarResponse {
+  avatar: string;
 }
 
 export async function obtener_usuarios(
@@ -61,4 +65,18 @@ export async function obtener_usuarios(
     total: respuesta.datos.total,
     totalPaginas: respuesta.datos.totalPaginas,
   };
+}
+
+export async function actualizar_avatar(
+  archivo: Blob,
+  nombre_archivo: string,
+): Promise<ApiResponse<ActualizarAvatarResponse>> {
+  const form_data = new FormData();
+
+  form_data.append("avatar", archivo, nombre_archivo);
+
+  return crear_form_data<ApiResponse<ActualizarAvatarResponse>>(
+    "usuarios/perfil/avatar",
+    form_data,
+  );
 }

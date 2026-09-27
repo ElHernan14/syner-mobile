@@ -10,6 +10,9 @@ using Syner.Api.Domain.Entities;
 using Syner.Api.Domain.Enums;
 using Syner.Api.Domain.States;
 using Syner.Api.Services;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+
 
 namespace Syner.Api.Controllers;
 
@@ -20,11 +23,14 @@ public sealed class UsuariosController : ControllerBase
 {
     private readonly SynerDbContext _db;
     private readonly PasswordService _passwordService;
+    private readonly IWebHostEnvironment _environment;
 
     public UsuariosController(
         SynerDbContext db,
-        PasswordService passwordService)
+        PasswordService passwordService,
+        IWebHostEnvironment environment)
     {
+        _environment = environment;
         _db = db;
         _passwordService = passwordService;
     }
@@ -500,6 +506,112 @@ public sealed class UsuariosController : ControllerBase
             this,
             "Usuario dado de baja correctamente.",
             resultado
+        );
+    }
+
+    [HttpPost("perfil/avatar")]
+    public async Task<IActionResult> ActualizarAvatar(
+        IFormFile avatar)
+    {
+        var usuario_id_claim =
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!long.TryParse(usuario_id_claim, out var usuario_id))
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "No se pudo identificar al usuario autenticado.",
+                "El token no contiene un identificador de usuario válido."
+            );
+        }
+
+        if (avatar is null || avatar.Length == 0)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "No se recibió ninguna imagen.",
+                "El archivo es obligatorio."
+            );
+        }
+
+        var extensiones_permitidas = new[]
+        {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+        };
+
+        var extension =
+            Path.GetExtension(avatar.FileName)
+                .ToLowerInvariant();
+
+        if (!extensiones_permitidas.Contains(extension))
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "Formato de imagen no válido.",
+                "Solo se permiten imágenes JPG, JPEG, PNG o WEBP."
+            );
+        }
+
+        const long tamaño_maximo = 2 * 1024 * 1024;
+
+        if (avatar.Length > tamaño_maximo)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "La imagen supera el tamaño máximo permitido.",
+                "El tamaño máximo permitido es de 2 MB."
+            );
+        }
+
+        var usuario = await _db.Usuarios
+            .FirstOrDefaultAsync(u => u.Id == usuario_id);
+
+        if (usuario is null)
+        {
+            return RespuestaHttp.NotFound<object>(
+                this,
+                "Usuario no encontrado.",
+                "No existe el usuario autenticado."
+            );
+        }
+
+        var carpeta =
+            Path.Combine(
+                _environment.WebRootPath,
+                "uploads",
+                "usuarios"
+            );
+
+        Directory.CreateDirectory(carpeta);
+
+        var nombre_archivo =
+            $"{Guid.NewGuid()}{extension}";
+
+        var ruta_archivo =
+            Path.Combine(carpeta, nombre_archivo);
+
+        await using (var stream = new FileStream(
+            ruta_archivo,
+            FileMode.Create))
+        {
+            await avatar.CopyToAsync(stream);
+        }
+
+        usuario.Avatar =
+            $"/uploads/usuarios/{nombre_archivo}";
+
+        await _db.SaveChangesAsync();
+
+        return RespuestaHttp.Ok(
+            this,
+            "Foto de perfil actualizada correctamente.",
+            new
+            {
+                avatar = usuario.Avatar
+            }
         );
     }
 }

@@ -44,13 +44,43 @@
       </div>
 
       <div v-else class="syner-lotes__list">
-        <comp-lote-card
-          v-for="lote in lotes"
-          :key="lote.id"
-          :lote="lote"
-          @editar="editar_lote"
-          @eliminar="eliminar_lote_confirmar"
-        />
+        <div v-for="lote in lotes" :key="lote.id" class="syner-lotes__item">
+          <comp-lote-card
+            :lote="lote"
+            @editar="editar_lote"
+            @eliminar="eliminar_lote_confirmar"
+          />
+
+          <div class="syner-lotes__acciones">
+            <ion-button
+              fill="outline"
+              size="small"
+              :disabled="lote_pdf_cargando === lote.id"
+              @click="ver_pdf_lote(lote.id)"
+            >
+              <ion-spinner v-if="lote_pdf_cargando === lote.id" slot="start" />
+
+              <ion-icon v-else :icon="document_text_outline" slot="start" />
+
+              {{
+                lote_pdf_cargando === lote.id ? "Generando..." : "Ver ficha PDF"
+              }}
+            </ion-button>
+
+            <ion-button
+              fill="outline"
+              size="small"
+              :disabled="lote_qr_cargando === lote.id"
+              @click="ver_qr_lote(lote.id)"
+            >
+              <ion-spinner v-if="lote_qr_cargando === lote.id" slot="start" />
+
+              <ion-icon v-else :icon="qr_code_outline" slot="start" />
+
+              {{ lote_qr_cargando === lote.id ? "Generando..." : "Ver QR" }}
+            </ion-button>
+          </div>
+        </div>
       </div>
 
       <comp-paginacion
@@ -60,6 +90,7 @@
       />
     </div>
 
+    <!-- Modal formulario -->
     <ion-modal :is-open="mostrar_formulario" @did-dismiss="cerrar_formulario">
       <ion-header>
         <ion-toolbar>
@@ -109,6 +140,57 @@
       </ion-content>
     </ion-modal>
 
+    <!-- Modal PDF -->
+    <ion-modal :is-open="mostrar_pdf" @did-dismiss="cerrar_pdf">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title> Ficha del lote </ion-title>
+
+          <ion-buttons slot="end">
+            <ion-button @click="cerrar_pdf"> Cerrar </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="syner-lotes__pdf-content">
+        <div v-if="pdf_url" class="syner-lotes__pdf-preview">
+          <iframe :src="pdf_url" title="Ficha PDF del lote" />
+        </div>
+
+        <div v-else class="syner-lotes__pdf-empty">
+          <ion-spinner />
+          <p>Preparando documento...</p>
+        </div>
+      </ion-content>
+    </ion-modal>
+
+    <ion-modal :is-open="mostrar_qr" @did-dismiss="cerrar_qr">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title> Código QR </ion-title>
+
+          <ion-buttons slot="end">
+            <ion-button @click="cerrar_qr"> Cerrar </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="syner-lotes__qr-content">
+        <div v-if="qr_url" class="syner-lotes__qr">
+          <img :src="qr_url" :alt="`Código QR del lote ${qr_lote_id}`" />
+
+          <p>Escaneá este código para acceder al lote.</p>
+
+          <span> Lote #{{ qr_lote_id }} </span>
+        </div>
+
+        <div v-else class="syner-lotes__qr-empty">
+          <ion-spinner />
+          <p>Preparando código QR...</p>
+        </div>
+      </ion-content>
+    </ion-modal>
+
     <ion-alert
       :is-open="mostrar_confirmacion_baja"
       header="Dar de baja lote"
@@ -145,7 +227,11 @@ import {
   IonToolbar,
 } from "@ionic/vue";
 
-import { addOutline as add_outline } from "ionicons/icons";
+import {
+  addOutline as add_outline,
+  documentTextOutline as document_text_outline,
+  qrCodeOutline as qr_code_outline,
+} from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
@@ -156,6 +242,8 @@ import CompLoteFormulario from "@/components/lotes/comp_lote_formulario.vue";
 
 import { useLotes } from "@/composables/useLotes";
 import { useProveedores } from "@/composables/useProveedores";
+
+import { obtener_pdf_lote, obtener_qr_lote } from "@/services/lotes_service";
 
 import type { Lote } from "@/models/LoteModel";
 import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
@@ -183,6 +271,7 @@ const {
 } = useProveedores();
 
 const termino = ref("");
+
 const mostrar_formulario = ref(false);
 const lote_seleccionado = ref<Lote | null>(null);
 const error_formulario = ref<string | null>(null);
@@ -194,6 +283,15 @@ const mensaje_baja = ref("");
 const mostrar_toast = ref(false);
 const mensaje_toast = ref("");
 const color_toast = ref<"success" | "danger">("success");
+
+const lote_pdf_cargando = ref<number | null>(null);
+const mostrar_pdf = ref(false);
+const pdf_url = ref<string | null>(null);
+
+const lote_qr_cargando = ref<number | null>(null);
+const mostrar_qr = ref(false);
+const qr_url = ref<string | null>(null);
+const qr_lote_id = ref<number | null>(null);
 
 let temporizador_busqueda: ReturnType<typeof setTimeout> | undefined;
 
@@ -290,6 +388,41 @@ function cerrar_formulario() {
   error_formulario.value = null;
 }
 
+async function ver_pdf_lote(id: number) {
+  if (lote_pdf_cargando.value !== null) {
+    return;
+  }
+
+  lote_pdf_cargando.value = id;
+
+  try {
+    const blob = await obtener_pdf_lote(id);
+
+    if (pdf_url.value) {
+      URL.revokeObjectURL(pdf_url.value);
+    }
+
+    pdf_url.value = URL.createObjectURL(blob);
+    mostrar_pdf.value = true;
+  } catch (err) {
+    const mensaje =
+      err instanceof Error ? err.message : "No se pudo generar la ficha PDF.";
+
+    mostrar_toast_error(mensaje);
+  } finally {
+    lote_pdf_cargando.value = null;
+  }
+}
+
+function cerrar_pdf() {
+  mostrar_pdf.value = false;
+
+  if (pdf_url.value) {
+    URL.revokeObjectURL(pdf_url.value);
+    pdf_url.value = null;
+  }
+}
+
 function eliminar_lote_confirmar(lote: Lote) {
   lote_para_eliminar.value = lote;
 
@@ -325,7 +458,6 @@ async function confirmar_baja() {
       err instanceof Error ? err.message : "No se pudo dar de baja el lote.";
 
     cerrar_confirmacion_baja();
-
     mostrar_toast_error(mensaje);
   }
 }
@@ -342,6 +474,43 @@ const botones_baja = [
     handler: confirmar_baja,
   },
 ];
+
+async function ver_qr_lote(id: number) {
+  if (lote_qr_cargando.value !== null) {
+    return;
+  }
+
+  lote_qr_cargando.value = id;
+
+  try {
+    const blob = await obtener_qr_lote(id);
+
+    if (qr_url.value) {
+      URL.revokeObjectURL(qr_url.value);
+    }
+
+    qr_url.value = URL.createObjectURL(blob);
+    qr_lote_id.value = id;
+    mostrar_qr.value = true;
+  } catch (err) {
+    const mensaje =
+      err instanceof Error ? err.message : "No se pudo generar el código QR.";
+
+    mostrar_toast_error(mensaje);
+  } finally {
+    lote_qr_cargando.value = null;
+  }
+}
+
+function cerrar_qr() {
+  mostrar_qr.value = false;
+  qr_lote_id.value = null;
+
+  if (qr_url.value) {
+    URL.revokeObjectURL(qr_url.value);
+    qr_url.value = null;
+  }
+}
 
 onMounted(() => {
   cargar_lotes();
@@ -406,6 +575,22 @@ onMounted(() => {
   margin-top: 16px;
 }
 
+.syner-lotes__item {
+  min-width: 0;
+}
+
+.syner-lotes__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: -8px;
+  padding: 0 4px;
+}
+
+.syner-lotes__acciones ion-button {
+  margin: 0;
+}
+
 .syner-lotes__formulario {
   width: 100%;
   padding: 8px 16px 24px;
@@ -439,6 +624,43 @@ onMounted(() => {
   font-size: 14px;
 }
 
+/* PDF */
+
+.syner-lotes__pdf-content {
+  --background: var(--syner-background);
+}
+
+.syner-lotes__pdf-preview {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 56px);
+  padding: 8px;
+}
+
+.syner-lotes__pdf-preview iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 72px);
+  border: 0;
+  border-radius: 8px;
+  background: white;
+}
+
+.syner-lotes__pdf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 300px;
+  color: var(--syner-text-secondary);
+}
+
+.syner-lotes__pdf-empty p {
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .syner-lotes {
     padding: 12px;
@@ -457,8 +679,68 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
+  .syner-lotes__acciones {
+    flex-direction: column;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .syner-lotes__acciones ion-button {
+    width: 100%;
+    margin: 0;
+  }
+
   .syner-lotes__formulario {
     padding: 4px 12px 20px;
   }
+
+  .syner-lotes__pdf-preview {
+    padding: 4px;
+  }
+}
+
+.syner-lotes__qr-content {
+  --background: var(--syner-background);
+}
+
+.syner-lotes__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 100%;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.syner-lotes__qr img {
+  width: min(280px, 80vw);
+  height: auto;
+  padding: 16px;
+  border-radius: 12px;
+  background: white;
+}
+
+.syner-lotes__qr p {
+  margin: 8px 0 0;
+  color: var(--syner-text-secondary);
+  font-size: 14px;
+}
+
+.syner-lotes__qr span {
+  color: var(--syner-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.syner-lotes__qr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 300px;
+  color: var(--syner-text-secondary);
 }
 </style>

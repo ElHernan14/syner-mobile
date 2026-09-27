@@ -58,5 +58,9 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
             .WithOne(x => x.Usuario)
             .HasForeignKey(x => x.UsuarioId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(u => u.Avatar)
+            .HasMaxLength(500)
+            .IsRequired(false);
     }
 }

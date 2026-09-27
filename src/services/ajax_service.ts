@@ -10,6 +10,7 @@ export class ApiError extends Error {
 
   constructor(mensaje: string, status: number, errores: string[] = []) {
     super(mensaje);
+
     this.name = "ApiError";
     this.status = status;
     this.errores = errores;
@@ -92,7 +93,11 @@ async function ejecutar_request(
 
   const headers = new Headers(opciones.headers);
 
-  headers.set("Content-Type", "application/json");
+  if (opciones.body && !(opciones.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  } else {
+    headers.delete("Content-Type");
+  }
 
   if (auth_store.access_token) {
     headers.set("Authorization", `Bearer ${auth_store.access_token}`);
@@ -110,15 +115,19 @@ async function ejecutar_request(
   }
 }
 
+type TipoRespuesta = "json" | "blob";
+
 async function ejecutar<T>(
   endpoint: string,
   opciones: RequestInit,
+  tipo_respuesta: TipoRespuesta = "json",
 ): Promise<T> {
   let response = await ejecutar_request(endpoint, opciones);
 
   if (response.status === 401 && !es_endpoint_auth(endpoint)) {
     try {
       console.log("token expirado ! - Se ejecuta refresh");
+
       await ejecutar_refresh();
 
       response = await ejecutar_request(endpoint, opciones);
@@ -136,6 +145,11 @@ async function ejecutar<T>(
   }
 
   console.log("token no expirado !");
+
+  if (tipo_respuesta === "blob") {
+    return (await response.blob()) as T;
+  }
+
   return response.json() as Promise<T>;
 }
 
@@ -149,6 +163,16 @@ export async function crear<T>(endpoint: string, datos: unknown): Promise<T> {
   return ejecutar<T>(endpoint, {
     method: "POST",
     body: JSON.stringify(datos),
+  });
+}
+
+export async function crear_form_data<T>(
+  endpoint: string,
+  form_data: FormData,
+): Promise<T> {
+  return ejecutar<T>(endpoint, {
+    method: "POST",
+    body: form_data,
   });
 }
 
@@ -166,4 +190,14 @@ export async function eliminar(endpoint: string): Promise<void> {
   await ejecutar<void>(endpoint, {
     method: "DELETE",
   });
+}
+
+export async function obtener_blob(endpoint: string): Promise<Blob> {
+  return ejecutar<Blob>(
+    endpoint,
+    {
+      method: "GET",
+    },
+    "blob",
+  );
 }

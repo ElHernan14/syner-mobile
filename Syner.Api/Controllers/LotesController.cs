@@ -9,6 +9,7 @@ using Syner.Api.Domain.DTOs.Lotes;
 using Syner.Api.Domain.Entities;
 using Syner.Api.Domain.Enums;
 using Syner.Api.Domain.States;
+using Syner.Api.Services.Lotes;
 
 namespace Syner.Api.Controllers;
 
@@ -18,10 +19,17 @@ namespace Syner.Api.Controllers;
 public sealed class LotesController : ControllerBase
 {
     private readonly SynerDbContext _db;
+    private readonly LotePdfService _lote_pdf_service;
+    private readonly LoteQrService _lote_qr_service;
 
-    public LotesController(SynerDbContext db)
+    public LotesController(
+        SynerDbContext db,
+        LotePdfService lote_pdf_service,
+        LoteQrService lote_qr_service)
     {
         _db = db;
+        _lote_pdf_service = lote_pdf_service;
+        _lote_qr_service = lote_qr_service;
     }
 
     [HttpGet]
@@ -465,6 +473,65 @@ public sealed class LotesController : ControllerBase
             this,
             "Lote dado de baja correctamente.",
             resultado
+        );
+    }
+
+    [HttpGet("{id:int}/pdf")]
+    public async Task<IActionResult> ObtenerPdf(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var lote = await _db.Lotes
+            .AsNoTracking()
+            .Include(lote => lote.Proveedor)
+            .FirstOrDefaultAsync(
+                lote => lote.Id == id,
+                cancellationToken
+            );
+
+        if (lote is null)
+        {
+            return RespuestaHttp.NotFound<object>(
+                this,
+                "El lote no existe."
+            );
+        }
+
+        var pdf = _lote_pdf_service.Generar(lote);
+
+        return File(
+            pdf,
+            "application/pdf",
+            $"syner-lote-{lote.Id}.pdf"
+        );
+    }
+
+    [HttpGet("{id:int}/qr")]
+    public async Task<IActionResult> ObtenerQr(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var existe = await _db.Lotes
+            .AsNoTracking()
+            .AnyAsync(
+                lote => lote.Id == id,
+                cancellationToken
+            );
+
+        if (!existe)
+        {
+            return RespuestaHttp.NotFound<object>(
+                this,
+                "El lote no existe."
+            );
+        }
+
+        var qr = _lote_qr_service.Generar(id);
+
+        return File(
+            qr,
+            "image/png",
+            $"syner-lote-{id}-qr.png"
         );
     }
 }
