@@ -246,6 +246,7 @@ public sealed class LotesController : ControllerBase
     {
         var lote = await _db.Lotes
             .AsNoTracking()
+            .Include(lote => lote.Proveedor)
             .FirstOrDefaultAsync(
                 lote => lote.Id == id,
                 cancellationToken

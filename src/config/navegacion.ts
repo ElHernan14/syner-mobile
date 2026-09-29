@@ -30,6 +30,11 @@ const grupos_menu: GrupoMenu[] = [
     titulo: "Configuración",
     orden: 2,
   },
+  {
+    id: "herramientas",
+    titulo: "Herramientas",
+    orden: 3,
+  },
 ];
 
 const navegacion: ItemNavegacion[] = [
@@ -88,6 +93,15 @@ const navegacion: ItemNavegacion[] = [
     grupo_menu: "configuracion",
     orden: 6,
     componente: () => import("@/views/MiCuentaPage.vue"),
+  },
+  {
+    id: "escanear-qr",
+    titulo: "Escanear QR",
+    ruta: "/app/escanear-qr",
+    icono: "qr-code-outline",
+    grupo_menu: "herramientas",
+    orden: 7,
+    componente: () => import("@/views/EscanearQrPage.vue"),
   },
 ];
 

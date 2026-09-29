@@ -79,6 +79,26 @@
 
               {{ lote_qr_cargando === lote.id ? "Generando..." : "Ver QR" }}
             </ion-button>
+
+            <ion-button
+              fill="outline"
+              size="small"
+              :disabled="lote_pdf_compartiendo === lote.id"
+              @click="compartir_pdf_lote(lote.id)"
+            >
+              <ion-spinner
+                v-if="lote_pdf_compartiendo === lote.id"
+                slot="start"
+              />
+
+              <ion-icon v-else :icon="share_outline" slot="start" />
+
+              {{
+                lote_pdf_compartiendo === lote.id
+                  ? "Preparando..."
+                  : "Compartir PDF"
+              }}
+            </ion-button>
           </div>
         </div>
       </div>
@@ -136,30 +156,6 @@
             @guardar="guardar_lote"
             @cancelar="cerrar_formulario"
           />
-        </div>
-      </ion-content>
-    </ion-modal>
-
-    <!-- Modal PDF -->
-    <ion-modal :is-open="mostrar_pdf" @did-dismiss="cerrar_pdf">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title> Ficha del lote </ion-title>
-
-          <ion-buttons slot="end">
-            <ion-button @click="cerrar_pdf"> Cerrar </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-
-      <ion-content class="syner-lotes__pdf-content">
-        <div v-if="pdf_url" class="syner-lotes__pdf-preview">
-          <iframe :src="pdf_url" title="Ficha PDF del lote" />
-        </div>
-
-        <div v-else class="syner-lotes__pdf-empty">
-          <ion-spinner />
-          <p>Preparando documento...</p>
         </div>
       </ion-content>
     </ion-modal>
@@ -231,6 +227,7 @@ import {
   addOutline as add_outline,
   documentTextOutline as document_text_outline,
   qrCodeOutline as qr_code_outline,
+  shareOutline as share_outline,
 } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
@@ -244,6 +241,7 @@ import { useLotes } from "@/composables/useLotes";
 import { useProveedores } from "@/composables/useProveedores";
 
 import { obtener_pdf_lote, obtener_qr_lote } from "@/services/lotes_service";
+import { abrir_pdf, compartir_pdf } from "@/services/archivo_service";
 
 import type { Lote } from "@/models/LoteModel";
 import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
@@ -285,13 +283,13 @@ const mensaje_toast = ref("");
 const color_toast = ref<"success" | "danger">("success");
 
 const lote_pdf_cargando = ref<number | null>(null);
-const mostrar_pdf = ref(false);
-const pdf_url = ref<string | null>(null);
 
 const lote_qr_cargando = ref<number | null>(null);
 const mostrar_qr = ref(false);
 const qr_url = ref<string | null>(null);
 const qr_lote_id = ref<number | null>(null);
+
+const lote_pdf_compartiendo = ref<number | null>(null);
 
 let temporizador_busqueda: ReturnType<typeof setTimeout> | undefined;
 
@@ -398,28 +396,14 @@ async function ver_pdf_lote(id: number) {
   try {
     const blob = await obtener_pdf_lote(id);
 
-    if (pdf_url.value) {
-      URL.revokeObjectURL(pdf_url.value);
-    }
-
-    pdf_url.value = URL.createObjectURL(blob);
-    mostrar_pdf.value = true;
+    await abrir_pdf(blob, `syner-lote-${id}.pdf`);
   } catch (err) {
     const mensaje =
-      err instanceof Error ? err.message : "No se pudo generar la ficha PDF.";
+      err instanceof Error ? err.message : "No se pudo abrir la ficha PDF.";
 
     mostrar_toast_error(mensaje);
   } finally {
     lote_pdf_cargando.value = null;
-  }
-}
-
-function cerrar_pdf() {
-  mostrar_pdf.value = false;
-
-  if (pdf_url.value) {
-    URL.revokeObjectURL(pdf_url.value);
-    pdf_url.value = null;
   }
 }
 
@@ -509,6 +493,27 @@ function cerrar_qr() {
   if (qr_url.value) {
     URL.revokeObjectURL(qr_url.value);
     qr_url.value = null;
+  }
+}
+
+async function compartir_pdf_lote(id: number) {
+  if (lote_pdf_compartiendo.value !== null) {
+    return;
+  }
+
+  lote_pdf_compartiendo.value = id;
+
+  try {
+    const blob = await obtener_pdf_lote(id);
+
+    await compartir_pdf(blob, `syner-lote-${id}.pdf`);
+  } catch (error) {
+    const mensaje =
+      error instanceof Error ? error.message : "No se pudo compartir el PDF.";
+
+    mostrar_toast_error(mensaje);
+  } finally {
+    lote_pdf_compartiendo.value = null;
   }
 }
 
@@ -624,43 +629,6 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* PDF */
-
-.syner-lotes__pdf-content {
-  --background: var(--syner-background);
-}
-
-.syner-lotes__pdf-preview {
-  width: 100%;
-  height: 100%;
-  min-height: calc(100vh - 56px);
-  padding: 8px;
-}
-
-.syner-lotes__pdf-preview iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: calc(100vh - 72px);
-  border: 0;
-  border-radius: 8px;
-  background: white;
-}
-
-.syner-lotes__pdf-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  min-height: 300px;
-  color: var(--syner-text-secondary);
-}
-
-.syner-lotes__pdf-empty p {
-  margin: 0;
-}
-
 @media (max-width: 768px) {
   .syner-lotes {
     padding: 12px;
@@ -692,10 +660,6 @@ onMounted(() => {
 
   .syner-lotes__formulario {
     padding: 4px 12px 20px;
-  }
-
-  .syner-lotes__pdf-preview {
-    padding: 4px;
   }
 }
 

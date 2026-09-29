@@ -106,6 +106,8 @@ builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<LotePdfService>();
 builder.Services.AddScoped<LoteQrService>();
 
+builder.WebHost.UseWebRoot("wwwroot");
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

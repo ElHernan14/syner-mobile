@@ -52,6 +52,49 @@ interface LoteResponseApi {
   proveedor?: ProveedorApi;
 }
 
+interface LoteDetalleApi {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  categoria: string;
+  precioMercado: number;
+  precioCupo: number;
+  porcentajeAhorro: number;
+  cantidadCupos: number;
+  cuposOcupados: number;
+  fechaInicio: string;
+  fechaFin: string;
+  estado: EstadoLote;
+  proveedorId: number;
+  proveedor?: ProveedorApi | null;
+}
+
+function mapearLoteDetalle(lote: LoteDetalleApi): Lote {
+  const proveedor: ProveedorApi = lote.proveedor ?? {
+    id: lote.proveedorId,
+    nombre: "",
+    descripcion: "",
+    verificado: false,
+  };
+
+  return {
+    id: lote.id,
+    nombre: lote.nombre,
+    descripcion: lote.descripcion,
+    categoria: lote.categoria,
+    precioMercado: lote.precioMercado,
+    precioCupo: lote.precioCupo,
+    porcentajeAhorro: lote.porcentajeAhorro,
+    cantidadCupos: lote.cantidadCupos,
+    cuposOcupados: lote.cuposOcupados,
+    fechaInicio: lote.fechaInicio,
+    fechaFin: lote.fechaFin,
+    estado: lote.estado,
+    proveedorId: lote.proveedorId,
+    proveedor: mapearProveedor(proveedor),
+  };
+}
+
 interface RespuestaApi<T> {
   exito: boolean;
   mensaje: string;
@@ -274,11 +317,11 @@ export async function obtener_lotes(
 
 export async function obtener_lote(id: number): Promise<Lote> {
   try {
-    const respuesta = await obtener<RespuestaApi<LoteResponseApi>>(
+    const respuesta = await obtener<RespuestaApi<LoteDetalleApi>>(
       `lotes/${id}`,
     );
 
-    return mapearRespuesta(obtenerDatos(respuesta));
+    return mapearLoteDetalle(obtenerDatos(respuesta));
   } catch (error) {
     return manejarError(error);
   }

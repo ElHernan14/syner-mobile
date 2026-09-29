@@ -6,6 +6,8 @@ import { navegacion } from "@/config/navegacion";
 
 import LoginPage from "@/views/LoginPage.vue";
 
+import LoteDetallePage from "@/views/LoteDetallePage.vue";
+
 import { useAuthStore } from "@/stores/auth_store";
 
 const routes = [
@@ -13,6 +15,7 @@ const routes = [
     path: "/",
     redirect: "/login",
   },
+
   {
     path: "/login",
     component: LoginPage,
@@ -21,22 +24,36 @@ const routes = [
       publico: true,
     },
   },
+
   {
     path: "/app",
     component: MainLayout,
     meta: {
       requiere_autenticacion: true,
     },
-    children: navegacion.map((item) => ({
-      path: item.ruta.replace("/app/", ""),
-      component: item.componente,
-      name: item.id,
-      meta: {
-        requiere_autenticacion: true,
-        roles: item.roles,
+
+    children: [
+      ...navegacion.map((item) => ({
+        path: item.ruta.replace("/app/", ""),
+        component: item.componente,
+        name: item.id,
+        meta: {
+          requiere_autenticacion: true,
+          roles: item.roles,
+        },
+      })),
+
+      {
+        path: "lotes/:id",
+        component: LoteDetallePage,
+        name: "lote-detalle",
+        meta: {
+          requiere_autenticacion: true,
+        },
       },
-    })),
+    ],
   },
+
   {
     path: "/:pathMatch(.*)*",
     redirect: "/login",
@@ -50,6 +67,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth_store = useAuthStore();
+
   if (to.name === "login") {
     if (auth_store.autenticado) {
       return "/app/inicio";

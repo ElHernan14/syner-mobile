@@ -555,7 +555,7 @@ public sealed class UsuariosController : ControllerBase
             );
         }
 
-        const long tamaño_maximo = 2 * 1024 * 1024;
+        const long tamaño_maximo = 5 * 1024 * 1024;
 
         if (avatar.Length > tamaño_maximo)
         {
@@ -578,12 +578,20 @@ public sealed class UsuariosController : ControllerBase
             );
         }
 
-        var carpeta =
-            Path.Combine(
-                _environment.WebRootPath,
-                "uploads",
-                "usuarios"
+        if (string.IsNullOrWhiteSpace(_environment.WebRootPath))
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "No se configuró el directorio público de la aplicación.",
+                "No se encontró el directorio wwwroot."
             );
+        }
+
+        var carpeta = Path.Combine(
+            _environment.WebRootPath,
+            "uploads",
+            "usuarios"
+        );
 
         Directory.CreateDirectory(carpeta);
 

@@ -105,6 +105,7 @@ import {
   peopleOutline,
   personCircleOutline,
   receiptOutline,
+  qrCodeOutline,
 } from "ionicons/icons";
 
 import { useRoute, useRouter } from "vue-router";
@@ -132,6 +133,7 @@ const iconos = {
   "receipt-outline": receiptOutline,
   "business-outline": businessOutline,
   "people-outline": peopleOutline,
+  "qr-code-outline": qrCodeOutline,
 };
 
 const nombre_usuario = computed(() => {

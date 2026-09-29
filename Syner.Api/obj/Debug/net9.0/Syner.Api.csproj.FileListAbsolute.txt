@@ -155,3 +155,4 @@ C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROY
 C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\runtimes\win-x86\native\qpdf.dll
 C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\runtimes\unix\lib\net6.0\System.Drawing.Common.dll
 C:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\syner.api\bin\Debug\net9.0\runtimes\win\lib\net6.0\System.Drawing.Common.dll
+c:\Users\hcons\OneDrive\Desktop\TUDS-FINAL\DESARROLLO-AVANZADO-MOBILE\SYNER-PROYECTO\Syner.Api\bin\Debug\net9.0\Syner.Api.staticwebassets.runtime.json
