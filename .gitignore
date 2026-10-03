@@ -33,3 +33,13 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+
+# .NET
+**/bin/
+**/obj/
+
+# Firebase
+/Syner.Api/firebase/*.json
+
+# ASP.NET
+/Syner.Api/wwwroot/

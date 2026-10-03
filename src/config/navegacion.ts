@@ -47,61 +47,86 @@ const navegacion: ItemNavegacion[] = [
     orden: 1,
     componente: () => import("@/views/InicioPage.vue"),
   },
+
+  {
+    id: "notificaciones",
+    titulo: "Notificaciones",
+    ruta: "/app/notificaciones",
+    icono: "notifications-outline",
+    grupo_menu: "operacion",
+    orden: 2,
+    componente: () => import("@/views/NotificacionesPage.vue"),
+  },
+
   {
     id: "lotes",
     titulo: "Lotes",
     ruta: "/app/lotes",
     icono: "layers-outline",
     grupo_menu: "operacion",
-    orden: 2,
+    orden: 3,
     componente: () => import("@/views/LotesPage.vue"),
-    roles: ["admin"],
   },
+
   {
     id: "pedidos",
     titulo: "Pedidos",
     ruta: "/app/pedidos",
     icono: "receipt-outline",
     grupo_menu: "operacion",
-    orden: 3,
+    orden: 4,
     componente: () => import("@/views/PedidosPage.vue"),
   },
+
   {
     id: "proveedores",
     titulo: "Proveedores",
     ruta: "/app/proveedores",
     icono: "business-outline",
     grupo_menu: "configuracion",
-    orden: 4,
+    orden: 5,
     componente: () => import("@/views/ProveedoresPage.vue"),
   },
+
   {
     id: "usuarios",
     titulo: "Usuarios",
     ruta: "/app/usuarios",
     icono: "people-outline",
     grupo_menu: "configuracion",
-    orden: 5,
+    orden: 6,
     componente: () => import("@/views/UsuariosPage.vue"),
     roles: ["admin"],
   },
+
   {
     id: "mi-cuenta",
     titulo: "Mi Cuenta",
     ruta: "/app/mi-cuenta",
     icono: "person-circle-outline",
     grupo_menu: "configuracion",
-    orden: 6,
+    orden: 7,
     componente: () => import("@/views/MiCuentaPage.vue"),
   },
+
   {
     id: "escanear-qr",
     titulo: "Escanear QR",
     ruta: "/app/escanear-qr",
     icono: "qr-code-outline",
     grupo_menu: "herramientas",
-    orden: 7,
+    orden: 8,
     componente: () => import("@/views/EscanearQrPage.vue"),
+  },
+
+  {
+    id: "ubicacion",
+    titulo: "Ubicación",
+    ruta: "/app/ubicacion",
+    icono: "location-outline",
+    grupo_menu: "herramientas",
+    orden: 9,
+    componente: () => import("@/views/UbicacionPage.vue"),
   },
 ];
 

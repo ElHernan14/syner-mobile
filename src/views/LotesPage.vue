@@ -8,10 +8,11 @@
       <div class="syner-lotes__header">
         <div>
           <h1>Lotes</h1>
-          <p>Gestioná los lotes disponibles en SYNER.</p>
+          <p v-if="es_admin">Gestioná los lotes disponibles en SYNER.</p>
+          <p v-else>Explorá los lotes disponibles y adquirí tu cupo.</p>
         </div>
 
-        <ion-button @click="nuevo_lote">
+        <ion-button v-if="es_admin" @click="nuevo_lote">
           <ion-icon :icon="add_outline" slot="start" />
           Nuevo lote
         </ion-button>
@@ -38,7 +39,7 @@
           }}
         </p>
 
-        <ion-button v-if="!termino" @click="nuevo_lote">
+        <ion-button v-if="es_admin && !termino" @click="nuevo_lote">
           Crear primer lote
         </ion-button>
       </div>
@@ -51,7 +52,8 @@
             @eliminar="eliminar_lote_confirmar"
           />
 
-          <div class="syner-lotes__acciones">
+          <!-- Acciones administrativas -->
+          <div v-if="es_admin" class="syner-lotes__acciones">
             <ion-button
               fill="outline"
               size="small"
@@ -99,6 +101,34 @@
                   : "Compartir PDF"
               }}
             </ion-button>
+
+            <ion-button
+              fill="outline"
+              size="small"
+              :disabled="obtener_transiciones(lote).length === 0"
+              @click="abrir_cambio_estado(lote)"
+            >
+              <ion-icon :icon="swap_vertical_outline" slot="start" />
+
+              Cambiar estado
+            </ion-button>
+          </div>
+
+          <!-- Acción del usuario -->
+          <div v-if="es_usuario" class="syner-lotes__usuario-acciones">
+            <ion-button
+              expand="block"
+              :disabled="lote.estado !== 'fondeando'"
+              @click="adquirir_cupo(lote)"
+            >
+              <ion-icon :icon="ticket_outline" slot="start" />
+
+              {{
+                lote.estado === "fondeando"
+                  ? "Quiero mi Cupo"
+                  : "Cupo no disponible"
+              }}
+            </ion-button>
           </div>
         </div>
       </div>
@@ -110,8 +140,12 @@
       />
     </div>
 
-    <!-- Modal formulario -->
-    <ion-modal :is-open="mostrar_formulario" @did-dismiss="cerrar_formulario">
+    <!-- Modal formulario administrativo -->
+    <ion-modal
+      v-if="es_admin"
+      :is-open="mostrar_formulario"
+      @did-dismiss="cerrar_formulario"
+    >
       <ion-header>
         <ion-toolbar>
           <ion-title>
@@ -160,10 +194,78 @@
       </ion-content>
     </ion-modal>
 
+    <!-- Modal cambio de estado -->
+    <ion-modal
+      :is-open="modal_estado_abierto"
+      @did-dismiss="cerrar_cambio_estado"
+    >
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Cambiar estado</ion-title>
+
+          <ion-buttons slot="end">
+            <ion-button
+              :disabled="cambiando_estado"
+              @click="cerrar_cambio_estado"
+            >
+              Cerrar
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding">
+        <div v-if="lote_estado_seleccionado" class="syner-lotes__estado-modal">
+          <p class="syner-lotes__estado-modal-label">Lote</p>
+
+          <h2>
+            {{ lote_estado_seleccionado.nombre }}
+          </h2>
+
+          <p>
+            Estado actual:
+            <strong>
+              {{ nombre_estado(lote_estado_seleccionado.estado) }}
+            </strong>
+          </p>
+
+          <ion-item>
+            <ion-label position="stacked"> Nuevo estado </ion-label>
+
+            <ion-select
+              v-model="nuevo_estado_seleccionado"
+              interface="action-sheet"
+              :disabled="cambiando_estado"
+            >
+              <ion-select-option
+                v-for="estado in obtener_transiciones(lote_estado_seleccionado)"
+                :key="estado"
+                :value="estado"
+              >
+                {{ nombre_estado(estado) }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-button
+            expand="block"
+            class="syner-lotes__estado-modal-button"
+            :disabled="cambiando_estado || !nuevo_estado_seleccionado"
+            @click="confirmar_cambio_estado"
+          >
+            <ion-spinner v-if="cambiando_estado" name="crescent" />
+
+            <span v-else> Confirmar cambio </span>
+          </ion-button>
+        </div>
+      </ion-content>
+    </ion-modal>
+
+    <!-- Modal QR -->
     <ion-modal :is-open="mostrar_qr" @did-dismiss="cerrar_qr">
       <ion-header>
         <ion-toolbar>
-          <ion-title> Código QR </ion-title>
+          <ion-title>Código QR</ion-title>
 
           <ion-buttons slot="end">
             <ion-button @click="cerrar_qr"> Cerrar </ion-button>
@@ -187,6 +289,7 @@
       </ion-content>
     </ion-modal>
 
+    <!-- Confirmación de baja -->
     <ion-alert
       :is-open="mostrar_confirmacion_baja"
       header="Dar de baja lote"
@@ -195,6 +298,7 @@
       @did-dismiss="cerrar_confirmacion_baja"
     />
 
+    <!-- Toast -->
     <ion-toast
       :is-open="mostrar_toast"
       :message="mensaje_toast"
@@ -207,7 +311,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import {
   IonAlert,
@@ -216,7 +320,11 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
+  IonItem,
+  IonLabel,
   IonModal,
+  IonSelect,
+  IonSelectOption,
   IonSpinner,
   IonTitle,
   IonToast,
@@ -228,6 +336,8 @@ import {
   documentTextOutline as document_text_outline,
   qrCodeOutline as qr_code_outline,
   shareOutline as share_outline,
+  swapVerticalOutline as swap_vertical_outline,
+  ticketOutline as ticket_outline,
 } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
@@ -239,13 +349,59 @@ import CompLoteFormulario from "@/components/lotes/comp_lote_formulario.vue";
 
 import { useLotes } from "@/composables/useLotes";
 import { useProveedores } from "@/composables/useProveedores";
+import { useAuthStore } from "@/stores/auth_store";
 
-import { obtener_pdf_lote, obtener_qr_lote } from "@/services/lotes_service";
+import {
+  obtener_pdf_lote,
+  obtener_qr_lote,
+  cambiar_estado_lote,
+} from "@/services/lotes_service";
+
 import { abrir_pdf, compartir_pdf } from "@/services/archivo_service";
+
+import { adquirir_cupo as adquirir_cupo_api } from "@/services/pedidos_service";
 
 import type { Lote } from "@/models/LoteModel";
 import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
 import type { ActualizarLoteRequest } from "@/dtos/lotes/ActualizarLoteRequest";
+
+const auth_store = useAuthStore();
+
+const es_admin = computed(() => {
+  return auth_store.rol === "admin";
+});
+
+const es_usuario = computed(() => {
+  return auth_store.rol === "usuario";
+});
+
+const transiciones_estado: Record<string, string[]> = {
+  borrador: ["fondeando", "cancelado"],
+  fondeando: ["completado", "cancelado"],
+  completado: ["comprado", "cancelado"],
+  comprado: ["enviado", "cancelado"],
+  enviado: ["entregado", "cancelado"],
+  entregado: [],
+  cancelado: [],
+};
+
+const nombres_estado: Record<string, string> = {
+  borrador: "Borrador",
+  fondeando: "Fondeando",
+  completado: "Completado",
+  comprado: "Comprado",
+  enviado: "Enviado",
+  entregado: "Entregado",
+  cancelado: "Cancelado",
+};
+
+function obtener_transiciones(lote: Lote) {
+  return transiciones_estado[lote.estado] ?? [];
+}
+
+function nombre_estado(estado: string) {
+  return nombres_estado[estado] ?? estado;
+}
 
 const {
   lotes,
@@ -283,8 +439,8 @@ const mensaje_toast = ref("");
 const color_toast = ref<"success" | "danger">("success");
 
 const lote_pdf_cargando = ref<number | null>(null);
-
 const lote_qr_cargando = ref<number | null>(null);
+
 const mostrar_qr = ref(false);
 const qr_url = ref<string | null>(null);
 const qr_lote_id = ref<number | null>(null);
@@ -292,6 +448,77 @@ const qr_lote_id = ref<number | null>(null);
 const lote_pdf_compartiendo = ref<number | null>(null);
 
 let temporizador_busqueda: ReturnType<typeof setTimeout> | undefined;
+
+const modal_estado_abierto = ref(false);
+const lote_estado_seleccionado = ref<Lote | null>(null);
+const nuevo_estado_seleccionado = ref("");
+const cambiando_estado = ref(false);
+
+function abrir_cambio_estado(lote: Lote) {
+  if (!es_admin.value) {
+    return;
+  }
+
+  const transiciones = obtener_transiciones(lote);
+
+  if (transiciones.length === 0) {
+    mostrar_toast_error(
+      "Este lote no tiene transiciones de estado disponibles.",
+    );
+
+    return;
+  }
+
+  lote_estado_seleccionado.value = lote;
+  nuevo_estado_seleccionado.value = transiciones[0];
+  modal_estado_abierto.value = true;
+}
+
+function cerrar_cambio_estado() {
+  if (cambiando_estado.value) {
+    return;
+  }
+
+  modal_estado_abierto.value = false;
+  lote_estado_seleccionado.value = null;
+  nuevo_estado_seleccionado.value = "";
+}
+
+async function confirmar_cambio_estado() {
+  if (!es_admin.value) {
+    return;
+  }
+
+  const lote = lote_estado_seleccionado.value;
+
+  if (!lote || !nuevo_estado_seleccionado.value) {
+    return;
+  }
+
+  try {
+    cambiando_estado.value = true;
+
+    await cambiar_estado_lote(lote.id, nuevo_estado_seleccionado.value);
+
+    mostrar_toast_exito(
+      `El lote "${lote.nombre}" ahora está ${nombre_estado(
+        nuevo_estado_seleccionado.value,
+      )}.`,
+    );
+
+    cerrar_cambio_estado();
+
+    await cargar_lotes(page.value, termino.value);
+  } catch (error) {
+    mostrar_toast_error(
+      error instanceof Error
+        ? error.message
+        : "No se pudo cambiar el estado del lote.",
+    );
+  } finally {
+    cambiando_estado.value = false;
+  }
+}
 
 function mostrar_toast_exito(mensaje: string) {
   mensaje_toast.value = mensaje;
@@ -326,6 +553,10 @@ function cambiar_pagina(nueva_pagina: number) {
 }
 
 function nuevo_lote() {
+  if (!es_admin.value) {
+    return;
+  }
+
   lote_seleccionado.value = null;
   error_formulario.value = null;
   mostrar_formulario.value = true;
@@ -336,6 +567,10 @@ function nuevo_lote() {
 }
 
 function editar_lote(lote: Lote) {
+  if (!es_admin.value) {
+    return;
+  }
+
   lote_seleccionado.value = lote;
   error_formulario.value = null;
   mostrar_formulario.value = true;
@@ -346,6 +581,10 @@ function editar_lote(lote: Lote) {
 }
 
 async function guardar_lote(request: CrearLoteRequest | ActualizarLoteRequest) {
+  if (!es_admin.value) {
+    return;
+  }
+
   error_formulario.value = null;
 
   const es_edicion = lote_seleccionado.value !== null;
@@ -387,6 +626,10 @@ function cerrar_formulario() {
 }
 
 async function ver_pdf_lote(id: number) {
+  if (!es_admin.value) {
+    return;
+  }
+
   if (lote_pdf_cargando.value !== null) {
     return;
   }
@@ -408,6 +651,10 @@ async function ver_pdf_lote(id: number) {
 }
 
 function eliminar_lote_confirmar(lote: Lote) {
+  if (!es_admin.value) {
+    return;
+  }
+
   lote_para_eliminar.value = lote;
 
   mensaje_baja.value =
@@ -423,6 +670,10 @@ function cerrar_confirmacion_baja() {
 }
 
 async function confirmar_baja() {
+  if (!es_admin.value) {
+    return;
+  }
+
   if (!lote_para_eliminar.value) {
     return;
   }
@@ -460,6 +711,10 @@ const botones_baja = [
 ];
 
 async function ver_qr_lote(id: number) {
+  if (!es_admin.value) {
+    return;
+  }
+
   if (lote_qr_cargando.value !== null) {
     return;
   }
@@ -497,6 +752,10 @@ function cerrar_qr() {
 }
 
 async function compartir_pdf_lote(id: number) {
+  if (!es_admin.value) {
+    return;
+  }
+
   if (lote_pdf_compartiendo.value !== null) {
     return;
   }
@@ -514,6 +773,31 @@ async function compartir_pdf_lote(id: number) {
     mostrar_toast_error(mensaje);
   } finally {
     lote_pdf_compartiendo.value = null;
+  }
+}
+
+async function adquirir_cupo(lote: Lote) {
+  if (!es_usuario.value) {
+    return;
+  }
+
+  if (lote.estado !== "fondeando") {
+    return;
+  }
+
+  try {
+    await adquirir_cupo_api(lote.id);
+
+    mostrar_toast_exito(
+      `¡Cupo adquirido! Te asignamos un pedido para "${lote.nombre}".`,
+    );
+
+    await cargar_lotes(page.value, termino.value);
+  } catch (error) {
+    const mensaje =
+      error instanceof Error ? error.message : "No se pudo adquirir el cupo.";
+
+    mostrar_toast_error(mensaje);
   }
 }
 
@@ -587,6 +871,7 @@ onMounted(() => {
 .syner-lotes__acciones {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: -8px;
   padding: 0 4px;
@@ -594,6 +879,15 @@ onMounted(() => {
 
 .syner-lotes__acciones ion-button {
   margin: 0;
+}
+
+.syner-lotes__usuario-acciones {
+  margin-top: 8px;
+}
+
+.syner-lotes__usuario-acciones ion-button {
+  margin: 0;
+  font-weight: 700;
 }
 
 .syner-lotes__formulario {
@@ -627,6 +921,37 @@ onMounted(() => {
   margin: 0;
   color: var(--ion-color-danger);
   font-size: 14px;
+}
+
+.syner-lotes__estado-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.syner-lotes__estado-modal-label {
+  margin: 0;
+  color: var(--syner-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.syner-lotes__estado-modal h2 {
+  margin: 0;
+  color: var(--syner-text);
+  font-size: 22px;
+}
+
+.syner-lotes__estado-modal p {
+  margin: 0;
+  color: var(--syner-text-secondary);
+}
+
+.syner-lotes__estado-modal-button {
+  margin-top: 20px;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {

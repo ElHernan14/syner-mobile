@@ -85,6 +85,21 @@ function obtener_mensaje_error(
   return mensaje_generico;
 }
 
+async function registrar_push_despues_autenticacion(): Promise<void> {
+  try {
+    const { registrar_push } = await import(
+      "@/services/push_notifications_service"
+    );
+
+    await registrar_push();
+  } catch (error) {
+    console.error(
+      "No se pudo registrar el dispositivo para Push Notifications:",
+      error,
+    );
+  }
+}
+
 export const useAuthStore = defineStore("auth", () => {
   const sesion_persistida = obtener_sesion_persistida();
 
@@ -147,6 +162,8 @@ export const useAuthStore = defineStore("auth", () => {
         datos.usuario,
         biometria_activa.value,
       );
+
+      await registrar_push_despues_autenticacion();
 
       return respuesta;
     } catch (err) {
@@ -277,6 +294,8 @@ export const useAuthStore = defineStore("auth", () => {
 
       await refrescar_sesion_store();
 
+      await registrar_push_despues_autenticacion();
+
       return true;
     } catch (err) {
       console.error("No se pudo recuperar la sesión mediante biometría:", err);
@@ -284,7 +303,6 @@ export const useAuthStore = defineStore("auth", () => {
       access_token.value = null;
       refresh_token.value = null;
       usuario.value = null;
-
       biometria_activa.value = false;
 
       eliminar_sesion_persistida();
@@ -299,7 +317,6 @@ export const useAuthStore = defineStore("auth", () => {
     access_token.value = null;
     refresh_token.value = null;
     usuario.value = null;
-
     biometria_activa.value = false;
 
     eliminar_sesion_persistida();

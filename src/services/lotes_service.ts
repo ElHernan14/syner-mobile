@@ -399,3 +399,22 @@ export async function obtener_qr_lote(id: number): Promise<Blob> {
     return manejarError(error);
   }
 }
+
+interface CambiarEstadoLoteResponse {
+  exito: boolean;
+  mensaje: string;
+  datos: {
+    id: number;
+    estado: string;
+  } | null;
+  errores: string[];
+}
+
+export async function cambiar_estado_lote(
+  lote_id: number,
+  estado: string,
+): Promise<CambiarEstadoLoteResponse> {
+  return actualizar<CambiarEstadoLoteResponse>(`lotes/${lote_id}/estado`, {
+    estado,
+  });
+}

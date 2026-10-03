@@ -22,6 +22,43 @@ namespace Syner.Api.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("Syner.Api.Domain.Entities.Dispositivo", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("FechaRegistro")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Plataforma")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<long>("UsuarioId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId", "Activo");
+
+                    b.ToTable("dispositivos", (string)null);
+                });
+
             modelBuilder.Entity("Syner.Api.Domain.Entities.Lote", b =>
                 {
                     b.Property<long>("Id")
@@ -82,6 +119,54 @@ namespace Syner.Api.Migrations
                     b.HasIndex("ProveedorId");
 
                     b.ToTable("lotes", (string)null);
+                });
+
+            modelBuilder.Entity("Syner.Api.Domain.Entities.Notificacion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("EntidadId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("EntidadTipo")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("Leida")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Mensaje")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<long>("UsuarioId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FechaCreacion");
+
+                    b.HasIndex("UsuarioId", "Leida");
+
+                    b.ToTable("notificaciones", (string)null);
                 });
 
             modelBuilder.Entity("Syner.Api.Domain.Entities.Pedido", b =>
@@ -265,6 +350,17 @@ namespace Syner.Api.Migrations
                     b.ToTable("usuarios", (string)null);
                 });
 
+            modelBuilder.Entity("Syner.Api.Domain.Entities.Dispositivo", b =>
+                {
+                    b.HasOne("Syner.Api.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("Dispositivos")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("Syner.Api.Domain.Entities.Lote", b =>
                 {
                     b.HasOne("Syner.Api.Domain.Entities.Proveedor", "Proveedor")
@@ -274,6 +370,17 @@ namespace Syner.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Proveedor");
+                });
+
+            modelBuilder.Entity("Syner.Api.Domain.Entities.Notificacion", b =>
+                {
+                    b.HasOne("Syner.Api.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("Notificaciones")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("Syner.Api.Domain.Entities.Pedido", b =>
@@ -323,6 +430,10 @@ namespace Syner.Api.Migrations
 
             modelBuilder.Entity("Syner.Api.Domain.Entities.Usuario", b =>
                 {
+                    b.Navigation("Dispositivos");
+
+                    b.Navigation("Notificaciones");
+
                     b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618

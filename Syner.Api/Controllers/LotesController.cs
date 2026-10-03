@@ -10,6 +10,7 @@ using Syner.Api.Domain.Entities;
 using Syner.Api.Domain.Enums;
 using Syner.Api.Domain.States;
 using Syner.Api.Services.Lotes;
+using Syner.Api.Services.Notificaciones;
 
 namespace Syner.Api.Controllers;
 
@@ -21,15 +22,20 @@ public sealed class LotesController : ControllerBase
     private readonly SynerDbContext _db;
     private readonly LotePdfService _lote_pdf_service;
     private readonly LoteQrService _lote_qr_service;
-
+    private readonly NotificacionService _notificacionService;
+    private readonly NotificacionPushService _notificacion_push_service;
     public LotesController(
         SynerDbContext db,
         LotePdfService lote_pdf_service,
-        LoteQrService lote_qr_service)
+        LoteQrService lote_qr_service,
+        NotificacionService notificacionService,
+        NotificacionPushService notificacion_push_service)
     {
         _db = db;
         _lote_pdf_service = lote_pdf_service;
         _lote_qr_service = lote_qr_service;
+        _notificacionService = notificacionService;
+        _notificacion_push_service = notificacion_push_service;
     }
 
     [HttpGet]
@@ -533,6 +539,152 @@ public sealed class LotesController : ControllerBase
             qr,
             "image/png",
             $"syner-lote-{id}-qr.png"
+        );
+    }
+
+    [HttpPut("{id}/estado")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> CambiarEstado(
+        long id,
+        CambiarEstadoLoteRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "La solicitud no es válida.",
+                ModelState.Values
+                    .SelectMany(x => x.Errors)
+                    .Select(x => x.ErrorMessage)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .ToArray()
+            );
+        }
+
+        var validacion = request.Validar();
+
+        if (!validacion.EsValido)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "Los datos enviados no son válidos.",
+                validacion.Errores.ToArray()
+            );
+        }
+
+        if (!Enum.TryParse<EstadoLote>(
+            request.Estado,
+            true,
+            out var nuevoEstado))
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "El estado indicado no es válido.",
+                $"Estado recibido: {request.Estado}"
+            );
+        }
+
+        var lote = await _db.Lotes
+            .FirstOrDefaultAsync(
+                x => x.Id == id,
+                cancellationToken
+            );
+
+        if (lote is null)
+        {
+            return RespuestaHttp.NotFound<object>(
+                this,
+                "No se encontró el lote."
+            );
+        }
+
+        if (!Enum.TryParse<EstadoLote>(
+            lote.Estado,
+            true,
+            out var estadoActual))
+        {
+            return RespuestaHttp.Conflict<object>(
+                this,
+                "El lote tiene un estado inválido.",
+                $"Estado actual: {lote.Estado}"
+            );
+        }
+
+        if (!ReglasEstado.PuedeTransicionar(
+            estadoActual,
+            nuevoEstado))
+        {
+            return RespuestaHttp.Conflict<object>(
+                this,
+                "La transición de estado no está permitida.",
+                $"No se puede pasar de {estadoActual} a {nuevoEstado}."
+            );
+        }
+
+        await using var transaction =
+            await _db.Database.BeginTransactionAsync(
+                cancellationToken
+            );
+
+        var usuariosIds = new List<long>();
+
+        try
+        {
+            lote.Estado = nuevoEstado.ToString().ToLower();
+
+            usuariosIds = await _db.Pedidos
+                .AsNoTracking()
+                .Where(p =>
+                    p.LoteId == lote.Id &&
+                    p.Estado.ToLower() != "cancelado")
+                .Select(p => p.UsuarioId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            foreach (var usuarioId in usuariosIds)
+            {
+                await _notificacionService.CrearAsync(
+                    usuarioId,
+                    "lote_actualizado",
+                    "Actualización de lote",
+                    $"El lote \"{lote.Nombre}\" cambió su estado a " +
+                    $"{nuevoEstado.ToString().ToLower()}.",
+                    "lote",
+                    lote.Id,
+                    cancellationToken
+                );
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+
+            await _notificacion_push_service.EnviarAUsuariosAsync(
+                usuariosIds,
+                "Actualización de lote",
+                $"El lote \"{lote.Nombre}\" cambió su estado a " +
+                $"{nuevoEstado.ToString().ToLower()}.",
+                "lote_actualizado",
+                "lote",
+                lote.Id,
+                cancellationToken
+            );
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+
+        return RespuestaHttp.Ok(
+            this,
+            "El estado del lote fue actualizado correctamente.",
+            new
+            {
+                lote.Id,
+                lote.Estado
+            }
         );
     }
 }

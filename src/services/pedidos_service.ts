@@ -1,4 +1,4 @@
-import { obtener } from "@/services/ajax_service";
+import { obtener, crear } from "@/services/ajax_service";
 
 import type { ApiResponse } from "@/models/api_response";
 import type { ResultadoPaginado } from "@/models/paginacion";
@@ -73,4 +73,34 @@ export async function obtener_pedidos(
     total: respuesta.datos.total,
     totalPaginas: respuesta.datos.totalPaginas,
   };
+}
+
+interface CrearPedidoCupoRequest {
+  loteId: number;
+}
+
+interface CrearPedidoCupoData {
+  id: number;
+  usuarioId: number;
+  loteId: number;
+  estado: string;
+  numeroSeguimiento: string | null;
+  codigoEntrega: string | null;
+}
+
+interface CrearPedidoCupoResponse {
+  exito: boolean;
+  mensaje: string;
+  datos: CrearPedidoCupoData | null;
+  errores: string[];
+}
+
+export async function adquirir_cupo(
+  lote_id: number,
+): Promise<CrearPedidoCupoResponse> {
+  const request: CrearPedidoCupoRequest = {
+    loteId: lote_id,
+  };
+
+  return crear<CrearPedidoCupoResponse>("pedidos/cupo", request);
 }

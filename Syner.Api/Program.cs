@@ -11,10 +11,39 @@ using Syner.Api.Data.Seed;
 using Syner.Api.Services;
 using QuestPDF.Infrastructure;
 using Syner.Api.Services.Lotes;
+using Syner.Api.Services.Notificaciones;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
+using Syner.Api.Firebase;
 
 const string corsPolicy = "SynerCors";
 
 var builder = WebApplication.CreateBuilder(args);
+
+var firebaseCredentialsPath = Path.Combine(
+    builder.Environment.ContentRootPath,
+    "firebase",
+    "service-account.json"
+);
+
+if (!File.Exists(firebaseCredentialsPath))
+{
+    throw new FileNotFoundException(
+        "No se encontró la credencial de Firebase.",
+        firebaseCredentialsPath
+    );
+}
+
+FirebaseApp.Create(
+    new AppOptions
+    {
+        Credential = CredentialFactory
+            .FromFile<ServiceAccountCredential>(
+                firebaseCredentialsPath
+            )
+            .ToGoogleCredential()
+    }
+);
 
 builder.Services
     .AddControllers()
@@ -105,7 +134,10 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<LotePdfService>();
 builder.Services.AddScoped<LoteQrService>();
-
+builder.Services.AddScoped<NotificacionService>();
+builder.Services.AddSingleton<FirebasePushService>();
+builder.Services.AddScoped<DispositivoService>();
+builder.Services.AddScoped<NotificacionPushService>();
 builder.WebHost.UseWebRoot("wwwroot");
 
 var app = builder.Build();

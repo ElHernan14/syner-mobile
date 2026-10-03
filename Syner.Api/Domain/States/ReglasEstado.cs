@@ -94,4 +94,56 @@ public static class ReglasEstado
                 OperacionEstado.Modificacion
             ]
         };
+
+    public static readonly Dictionary<
+        EstadoLote,
+        HashSet<EstadoLote>
+    > TransicionesLote = new()
+    {
+        [EstadoLote.Borrador] =
+        [
+            EstadoLote.Fondeando,
+            EstadoLote.Cancelado
+        ],
+
+        [EstadoLote.Fondeando] =
+        [
+            EstadoLote.Completado,
+            EstadoLote.Cancelado
+        ],
+
+        [EstadoLote.Completado] =
+        [
+            EstadoLote.Comprado,
+            EstadoLote.Cancelado
+        ],
+
+        [EstadoLote.Comprado] =
+        [
+            EstadoLote.Enviado,
+            EstadoLote.Cancelado
+        ],
+
+        [EstadoLote.Enviado] =
+        [
+            EstadoLote.Entregado,
+            EstadoLote.Cancelado
+        ],
+
+        [EstadoLote.Entregado] = [],
+
+        [EstadoLote.Cancelado] = []
+    };
+
+
+    public static bool PuedeTransicionar(
+        EstadoLote estadoActual,
+        EstadoLote nuevoEstado)
+    {
+        return TransicionesLote.TryGetValue(
+            estadoActual,
+            out var estadosPermitidos
+        )
+        && estadosPermitidos.Contains(nuevoEstado);
+    }
 }

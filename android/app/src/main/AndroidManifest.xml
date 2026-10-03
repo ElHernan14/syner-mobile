@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <application
     android:usesCleartextTraffic="true"
     android:allowBackup="true"
@@ -9,6 +12,15 @@
     android:supportsRtl="true"
     android:theme="@style/AppTheme"
   >
+        <meta-data
+      android:name="com.google.firebase.messaging.default_notification_icon"
+      android:resource="@drawable/ic_stat_notificacion"
+    />
+
+        <meta-data
+      android:name="com.google.firebase.messaging.default_notification_color"
+      android:resource="@color/color_notificacion"
+    />
         <activity
       android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
       android:name=".MainActivity"

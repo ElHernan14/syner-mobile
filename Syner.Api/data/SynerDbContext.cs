@@ -22,6 +22,10 @@ public sealed class SynerDbContext : DbContext
     public DbSet<Lote> Lotes => Set<Lote>();
 
     public DbSet<Pedido> Pedidos => Set<Pedido>();
+    
+    public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
+
+    public DbSet<Dispositivo> Dispositivos => Set<Dispositivo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

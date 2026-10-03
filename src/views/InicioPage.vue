@@ -58,25 +58,54 @@
           </ion-label>
         </ion-item>
       </ion-list>
+
+      <section class="syner-inicio__notificaciones">
+        <ion-button
+          expand="block"
+          :disabled="notificando"
+          @click="probar_notificacion"
+        >
+          <ion-icon slot="start" :icon="notificationsOutline" />
+
+          {{
+            notificando
+              ? "Enviando notificación..."
+              : "Probar notificación local"
+          }}
+        </ion-button>
+      </section>
+
+      <ion-toast
+        :is-open="toast_abierto"
+        :message="toast_mensaje"
+        :duration="2500"
+        @didDismiss="toast_abierto = false"
+      />
     </div>
   </comp-page>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-
-import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
-
+import { computed, ref } from "vue";
+import {
+  IonButton,
+  IonIcon,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonToast,
+} from "@ionic/vue";
 import {
   businessOutline,
   layersOutline,
+  notificationsOutline,
   peopleOutline,
   receiptOutline,
 } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
-
 import { useAuthStore } from "@/stores/auth_store";
+import { mostrar_notificacion_local } from "@/services/notificaciones_locales_service";
 
 const auth_store = useAuthStore();
 
@@ -87,6 +116,34 @@ const nombre_usuario = computed(() => {
 const es_admin = computed(() => {
   return auth_store.rol === "admin";
 });
+
+const notificando = ref(false);
+const toast_abierto = ref(false);
+const toast_mensaje = ref("");
+
+async function probar_notificacion() {
+  notificando.value = true;
+  toast_abierto.value = false;
+
+  try {
+    await mostrar_notificacion_local(
+      "SYNER",
+      "Esta es una notificación local de prueba.",
+    );
+
+    toast_mensaje.value = "Notificación programada correctamente.";
+    toast_abierto.value = true;
+  } catch (error) {
+    toast_mensaje.value =
+      error instanceof Error
+        ? error.message
+        : "No se pudo mostrar la notificación.";
+
+    toast_abierto.value = true;
+  } finally {
+    notificando.value = false;
+  }
+}
 </script>
 
 <style scoped>
@@ -151,5 +208,14 @@ const es_admin = computed(() => {
 
 .syner-inicio__list ion-icon {
   color: var(--syner-primary);
+}
+
+.syner-inicio__notificaciones {
+  margin-top: 24px;
+}
+
+.syner-inicio__notificaciones ion-button {
+  --border-radius: 12px;
+  font-weight: 700;
 }
 </style>

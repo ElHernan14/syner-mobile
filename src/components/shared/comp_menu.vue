@@ -47,6 +47,16 @@
                 <ion-label>
                   {{ item.titulo }}
                 </ion-label>
+
+                <ion-badge
+                  v-if="
+                    item.id === 'notificaciones' &&
+                    notificaciones_store.cantidad_no_leidas > 0
+                  "
+                  color="primary"
+                >
+                  {{ notificaciones_store.cantidad_no_leidas }}
+                </ion-badge>
               </ion-item>
             </ion-menu-toggle>
           </template>
@@ -81,9 +91,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 
 import {
+  IonBadge,
   IonContent,
   IonHeader,
   IonIcon,
@@ -114,6 +125,8 @@ import { navegacion, obtener_grupos_menu } from "@/config/navegacion";
 
 import { useAuthStore } from "@/stores/auth_store";
 
+import { useNotificacionesStore } from "@/stores/notificaciones_store";
+
 interface Props {
   content_id: string;
 }
@@ -124,6 +137,7 @@ const route = useRoute();
 const router = useRouter();
 
 const auth_store = useAuthStore();
+const notificaciones_store = useNotificacionesStore();
 
 const grupos = obtener_grupos_menu();
 
@@ -143,6 +157,18 @@ const nombre_usuario = computed(() => {
 const rol_usuario = computed(() => {
   return auth_store.rol === "admin" ? "Administrador" : "Usuario";
 });
+
+onMounted(() => {
+  cargar_cantidad_notificaciones();
+});
+
+async function cargar_cantidad_notificaciones() {
+  try {
+    await notificaciones_store.cargar_no_leidas();
+  } catch {
+    // El centro de notificaciones administra su propio estado de error.
+  }
+}
 
 function obtener_icono(nombre: string) {
   return iconos[nombre as keyof typeof iconos];
@@ -310,5 +336,11 @@ async function cerrar_sesion() {
 
 .syner-menu__logout ion-icon {
   font-size: 20px;
+}
+
+.syner-menu__item ion-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
 }
 </style>

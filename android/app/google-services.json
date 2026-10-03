@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "514726262520",
+    "project_id": "syner-mobile",
+    "storage_bucket": "syner-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:514726262520:android:8f703c19ade1d9336cad0d",
+        "android_client_info": {
+          "package_name": "com.example.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBsn9QZFdU8TqoOHPke8-yCoK0af8AIvHg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
