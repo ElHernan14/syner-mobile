@@ -9,17 +9,21 @@
         <comp-esqueleto :filas="5" />
       </div>
 
-      <div v-else-if="error" class="syner-pedidos__error">
-        <p>{{ error }}</p>
+      <comp-estado-listado
+        v-else-if="error"
+        tipo="error"
+        titulo="No se pudieron cargar los pedidos"
+        :mensaje="error"
+        :reintentar="true"
+        @reintentar="cargar_pedidos"
+      />
 
-        <ion-button :fill="'outline'" @click="cargar_pedidos">
-          Reintentar
-        </ion-button>
-      </div>
-
-      <div v-else-if="!hay_pedidos" class="syner-pedidos__empty">
-        <p>No hay pedidos disponibles.</p>
-      </div>
+      <comp-estado-listado
+        v-else-if="!hay_pedidos"
+        tipo="vacio"
+        titulo="No hay pedidos todavía"
+        mensaje="Cuando se registren pedidos, aparecerán en este listado."
+      />
 
       <ion-list v-else :inset="true">
         <ion-item v-for="pedido in pedidos" :key="pedido.id" :lines="'full'">
@@ -41,7 +45,7 @@
             <p>
               Estado:
               <strong>
-                {{ pedido.estado }}
+                {{ nombre_estado(pedido.estado) }}
               </strong>
             </p>
 
@@ -64,16 +68,22 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 
-import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
+import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
 
 import { receiptOutline } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
+import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
+import { obtener_estado_visual } from "@/config/estados";
 
 import { usePedidos } from "@/composables/usePedidos";
 
 const { pedidos, cargando, error, hay_pedidos, cargar_pedidos } = usePedidos();
+
+function nombre_estado(estado: string) {
+  return obtener_estado_visual(estado).etiqueta;
+}
 
 onMounted(() => {
   cargar_pedidos();

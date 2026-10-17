@@ -9,17 +9,21 @@
         <comp-esqueleto :filas="5" />
       </div>
 
-      <div v-else-if="error" class="syner-usuarios__error">
-        <p>{{ error }}</p>
+      <comp-estado-listado
+        v-else-if="error"
+        tipo="error"
+        titulo="No se pudieron cargar los usuarios"
+        :mensaje="error"
+        reintentar
+        @reintentar="cargar_usuarios"
+      />
 
-        <ion-button :fill="'outline'" @click="cargar_usuarios">
-          Reintentar
-        </ion-button>
-      </div>
-
-      <div v-else-if="!hay_usuarios" class="syner-usuarios__empty">
-        <p>No hay usuarios disponibles.</p>
-      </div>
+      <comp-estado-listado
+        v-else-if="!hay_usuarios"
+        tipo="vacio"
+        titulo="No hay usuarios disponibles"
+        mensaje="Los usuarios registrados aparecerán en este listado."
+      />
 
       <ion-list v-else :inset="true">
         <ion-item v-for="usuario in usuarios" :key="usuario.id" :lines="'full'">
@@ -65,12 +69,13 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 
-import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
+import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
 
 import { personCircleOutline } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
+import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
 
 import { useUsuarios } from "@/composables/useUsuarios";
 
@@ -91,18 +96,6 @@ onMounted(() => {
 
 .syner-usuarios__loading {
   padding: 0;
-}
-
-.syner-usuarios__error,
-.syner-usuarios__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--syner-text-secondary);
 }
 
 .syner-usuarios ion-item {

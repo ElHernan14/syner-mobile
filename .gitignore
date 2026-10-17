@@ -33,6 +33,15 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+!.env.release.example
+
+# Android release signing
+/android/keystore.properties
+/android/*.jks
+/android/*.keystore
+/android/**/*.jks
+/android/**/*.keystore
+
 
 # .NET
 **/bin/
@@ -43,3 +52,4 @@ npm-debug.log*
 
 # ASP.NET
 /Syner.Api/wwwroot/
+/Syner.Api/publish/

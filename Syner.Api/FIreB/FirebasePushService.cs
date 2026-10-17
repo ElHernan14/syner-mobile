@@ -1,14 +1,21 @@
+using FirebaseAdmin;
 using FirebaseAdmin.Messaging;
 
 namespace Syner.Api.Firebase;
 
 public sealed class FirebasePushService
 {
-    private readonly FirebaseMessaging _messaging;
+    private readonly FirebaseMessaging? _messaging;
+    private readonly ILogger<FirebasePushService> _logger;
 
-    public FirebasePushService()
+    public FirebasePushService(
+        FirebaseApp? firebaseApp,
+        ILogger<FirebasePushService> logger)
     {
-        _messaging = FirebaseMessaging.DefaultInstance;
+        _messaging = firebaseApp is null
+            ? null
+            : FirebaseMessaging.GetMessaging(firebaseApp);
+        _logger = logger;
     }
 
     public async Task<string> EnviarAsync(
@@ -18,6 +25,12 @@ public sealed class FirebasePushService
         Dictionary<string, string>? datos = null,
         CancellationToken cancellationToken = default)
     {
+        if (_messaging is null)
+        {
+            _logger.LogDebug("Push omitida porque Firebase no está configurado.");
+            return string.Empty;
+        }
+
         var message = new Message
         {
             Token = token,
@@ -28,7 +41,8 @@ public sealed class FirebasePushService
                 Body = mensaje
             },
 
-            Data = datos
+            Data = datos,
+            Android = CrearConfiguracionAndroid()
         };
 
         return await _messaging.SendAsync(
@@ -54,6 +68,12 @@ public sealed class FirebasePushService
             return [];
         }
 
+        if (_messaging is null)
+        {
+            _logger.LogDebug("Push múltiple omitida porque Firebase no está configurado.");
+            return [];
+        }
+
         var mensajes = tokensLista
             .Select(token => new Message
             {
@@ -65,7 +85,8 @@ public sealed class FirebasePushService
                     Body = mensaje
                 },
 
-                Data = datos
+                Data = datos,
+                Android = CrearConfiguracionAndroid()
             })
             .ToList();
 
@@ -90,5 +111,19 @@ public sealed class FirebasePushService
         }
 
         return resultados;
+    }
+
+    private static AndroidConfig CrearConfiguracionAndroid()
+    {
+        return new AndroidConfig
+        {
+            Priority = Priority.High,
+            Notification = new AndroidNotification
+            {
+                ChannelId = "syner_high_importance",
+                Icon = "ic_stat_notificacion",
+                Sound = "default"
+            }
+        };
     }
 }

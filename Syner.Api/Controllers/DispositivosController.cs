@@ -189,6 +189,50 @@ public sealed class DispositivosController : ControllerBase
         );
     }
 
+    [HttpPost("desactivar-token")]
+    public async Task<IActionResult> DesactivarPorToken(
+        DesactivarDispositivoRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validacion = request.Validar();
+
+        if (!validacion.EsValido)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "No se pudo desactivar el dispositivo.",
+                validacion.Errores.ToArray()
+            );
+        }
+
+        var usuarioId = ObtenerUsuarioId();
+
+        if (usuarioId is null)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "No se pudo identificar al usuario autenticado."
+            );
+        }
+
+        var dispositivo = await _db.Dispositivos.FirstOrDefaultAsync(
+            x => x.UsuarioId == usuarioId.Value && x.Token == request.Token.Trim(),
+            cancellationToken
+        );
+
+        if (dispositivo is not null && dispositivo.Activo)
+        {
+            dispositivo.Activo = false;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return RespuestaHttp.Ok(
+            this,
+            "Dispositivo desactivado correctamente.",
+            new { token = request.Token.Trim(), activo = false }
+        );
+    }
+
     private long? ObtenerUsuarioId()
     {
         var claim =

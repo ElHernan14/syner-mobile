@@ -15,6 +15,8 @@ export function useLotes() {
     limit,
     total,
     total_paginas,
+    operaciones_pendientes,
+    usando_cache,
   } = storeToRefs(lotes_store);
 
   function cargar_lotes(pagina = 1, termino?: string, sort?: string) {
@@ -36,6 +38,18 @@ export function useLotes() {
     return lotes_store.eliminar(id);
   }
 
+  function cambiar_estado_lote_local(
+    id: number,
+    estado: Parameters<typeof lotes_store.cambiar_estado>[1],
+    usuario_id: string,
+  ) {
+    return lotes_store.cambiar_estado(id, estado, usuario_id);
+  }
+
+  function refrescar_operaciones_pendientes() {
+    lotes_store.refrescar_operaciones_pendientes();
+  }
+
   return {
     lotes,
     cargando,
@@ -50,5 +64,9 @@ export function useLotes() {
     crear_lote,
     actualizar_lote,
     eliminar_lote,
+    operaciones_pendientes,
+    cambiar_estado_lote_local,
+    refrescar_operaciones_pendientes,
+    usando_cache,
   };
 }

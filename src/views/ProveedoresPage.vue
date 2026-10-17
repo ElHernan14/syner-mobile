@@ -9,17 +9,21 @@
         <comp-esqueleto :filas="5" />
       </div>
 
-      <div v-else-if="error" class="syner-proveedores__error">
-        <p>{{ error }}</p>
+      <comp-estado-listado
+        v-else-if="error"
+        tipo="error"
+        titulo="No se pudieron cargar los proveedores"
+        :mensaje="error"
+        reintentar
+        @reintentar="cargar_proveedores"
+      />
 
-        <ion-button :fill="'outline'" @click="cargar_proveedores">
-          Reintentar
-        </ion-button>
-      </div>
-
-      <div v-else-if="!hay_proveedores" class="syner-proveedores__empty">
-        <p>No hay proveedores disponibles.</p>
-      </div>
+      <comp-estado-listado
+        v-else-if="!hay_proveedores"
+        tipo="vacio"
+        titulo="No hay proveedores disponibles"
+        mensaje="Los proveedores registrados aparecerán en este listado."
+      />
 
       <ion-list v-else :inset="true">
         <ion-item
@@ -60,12 +64,13 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 
-import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
+import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
 
 import { businessOutline } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
+import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
 
 import { useProveedores } from "@/composables/useProveedores";
 
@@ -86,18 +91,6 @@ onMounted(() => {
 
 .syner-proveedores__loading {
   padding: 0;
-}
-
-.syner-proveedores__error,
-.syner-proveedores__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--syner-text-secondary);
 }
 
 .syner-proveedores ion-item {

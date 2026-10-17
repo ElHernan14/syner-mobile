@@ -85,6 +85,29 @@ function obtener_mensaje_error(
   return mensaje_generico;
 }
 
+function obtener_status_error(error: unknown): number | null {
+  if (typeof error !== "object" || error === null || !("status" in error)) {
+    return null;
+  }
+
+  const status = error.status;
+
+  return typeof status === "number" ? status : null;
+}
+
+function es_error_transitorio(error: unknown): boolean {
+  if (
+    error instanceof Error &&
+    error.message === "No se pudo establecer conexión con la API."
+  ) {
+    return true;
+  }
+
+  const status = obtener_status_error(error);
+
+  return status === 0 || (status !== null && status >= 500);
+}
+
 async function registrar_push_despues_autenticacion(): Promise<void> {
   try {
     const { registrar_push } = await import(
@@ -214,17 +237,25 @@ export const useAuthStore = defineStore("auth", () => {
 
       return respuesta;
     } catch (err) {
+      const mensaje = obtener_mensaje_error(
+        err,
+        "No se pudo refrescar la sesión.",
+      );
+
+      error.value = mensaje;
+
+      if (es_error_transitorio(err)) {
+        // Conservamos la sesión y el tipo original del error.
+        throw err;
+      }
+
       access_token.value = null;
       refresh_token.value = null;
       usuario.value = null;
 
       eliminar_sesion_persistida();
 
-      const mensaje = obtener_mensaje_error(err, "La sesión expiró.");
-
-      error.value = mensaje;
-
-      throw new Error(mensaje);
+      throw err;
     }
   }
 
@@ -312,6 +343,16 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function cerrar_sesion() {
+    try {
+      const { desactivar_push } = await import(
+        "@/services/push_notifications_service"
+      );
+
+      await desactivar_push();
+    } catch (error) {
+      console.error("No se pudo desactivar el dispositivo Push:", error);
+    }
+
     await eliminar_sesion_biometrica();
 
     access_token.value = null;

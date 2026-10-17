@@ -126,12 +126,28 @@ async function ejecutar<T>(
 
   if (response.status === 401 && !es_endpoint_auth(endpoint)) {
     try {
-      console.log("token expirado ! - Se ejecuta refresh");
+      console.log("Token expirado: se intenta renovar la sesión.");
 
       await ejecutar_refresh();
 
       response = await ejecutar_request(endpoint, opciones);
-    } catch {
+    } catch (error) {
+      // No ocultamos los errores temporales como si la sesión
+      // hubiera expirado definitivamente.
+      if (
+        error instanceof ApiError &&
+        (error.status === 0 || error.status >= 500)
+      ) {
+        throw error;
+      }
+
+      if (
+        error instanceof Error &&
+        error.message === "No se pudo establecer conexión con la API."
+      ) {
+        throw error;
+      }
+
       throw new ApiError("La sesión expiró. Iniciá sesión nuevamente.", 401);
     }
   }

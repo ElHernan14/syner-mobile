@@ -12,12 +12,19 @@ import { IonApp, IonRouterOutlet } from "@ionic/vue";
 import { useRouter } from "vue-router";
 
 import { useAuthStore } from "@/stores/auth_store";
+import { configurar_barra_estado } from "@/services/barra_estado_service";
 
 const router = useRouter();
 
 const auth_store = useAuthStore();
 
 onMounted(async () => {
+  try {
+    await configurar_barra_estado();
+  } catch (error) {
+    console.error("No se pudo configurar la barra de estado:", error);
+  }
+
   if (auth_store.autenticado) {
     try {
       const { registrar_push } = await import(

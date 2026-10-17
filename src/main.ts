@@ -17,11 +17,15 @@ import "@ionic/vue/css/display.css";
 import "./theme/variables.css";
 
 import { IonicVue } from "@ionic/vue";
+import { iniciar_sincronizacion_offline } from "@/services/sincronizacion_offline_service";
 
 const app = createApp(App);
+const pinia = createPinia();
 
 app.use(IonicVue);
-app.use(createPinia());
+app.use(pinia);
 app.use(router);
+
+iniciar_sincronizacion_offline(pinia);
 
 app.mount("#app");

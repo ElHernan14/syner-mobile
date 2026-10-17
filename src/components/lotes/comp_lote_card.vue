@@ -12,8 +12,8 @@
           </ion-card-title>
         </div>
 
-        <ion-badge :color="color_estado">
-          {{ lote.estado }}
+        <ion-badge :color="estado_visual.color">
+          {{ estado_visual.etiqueta }}
         </ion-badge>
       </div>
     </ion-card-header>
@@ -98,6 +98,7 @@ import {
 } from "@ionic/vue";
 
 import type { Lote } from "@/models/LoteModel";
+import { obtener_estado_visual } from "@/config/estados";
 
 const props = defineProps<{
   lote: Lote;
@@ -134,33 +135,7 @@ const puede_eliminar = computed(() => {
   ].includes(props.lote.estado);
 });
 
-const color_estado = computed(() => {
-  switch (props.lote.estado) {
-    case "borrador":
-      return "medium";
-
-    case "fondeando":
-      return "primary";
-
-    case "completado":
-      return "success";
-
-    case "comprado":
-      return "tertiary";
-
-    case "enviado":
-      return "warning";
-
-    case "entregado":
-      return "success";
-
-    case "cancelado":
-      return "danger";
-
-    default:
-      return "medium";
-  }
-});
+const estado_visual = computed(() => obtener_estado_visual(props.lote.estado));
 </script>
 
 <style scoped>

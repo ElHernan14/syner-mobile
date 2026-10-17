@@ -30,3 +30,7 @@ export async function registrar_dispositivo(
 
   return crear<RegistrarDispositivoApiResponse>("dispositivos", request);
 }
+
+export async function desactivar_dispositivo(token: string): Promise<void> {
+  await crear("dispositivos/desactivar-token", { token });
+}

@@ -110,6 +110,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import {
   IonBadge,
   IonButton,
@@ -134,6 +135,7 @@ import { useNotificacionesStore } from "@/stores/notificaciones_store";
 import type { Notificacion } from "@/models/notificacion";
 
 const notificaciones_store = useNotificacionesStore();
+const router = useRouter();
 
 const toast_abierto = ref(false);
 const toast_mensaje = ref("");
@@ -151,12 +153,25 @@ async function cargar() {
 }
 
 async function abrir_notificacion(notificacion: Notificacion) {
-  if (notificacion.leida) {
-    return;
-  }
-
   try {
-    await notificaciones_store.marcar_leida(notificacion.id);
+    if (!notificacion.leida) {
+      await notificaciones_store.marcar_leida(notificacion.id);
+    }
+
+    if (notificacion.entidadTipo === "lote" && notificacion.entidadId) {
+      await router.push({
+        name: "lote-detalle",
+        params: { id: notificacion.entidadId },
+      });
+      return;
+    }
+
+    if (notificacion.entidadTipo === "pedido" && notificacion.entidadId) {
+      await router.push({
+        name: "pedidos",
+        query: { pedidoId: notificacion.entidadId },
+      });
+    }
   } catch (error) {
     toast_mensaje.value =
       error instanceof Error

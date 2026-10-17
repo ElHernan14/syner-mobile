@@ -19,6 +19,7 @@ export async function solicitar_permisos_notificaciones(): Promise<boolean> {
 export async function mostrar_notificacion_local(
   titulo: string,
   cuerpo: string,
+  datos: Record<string, string> = {},
 ): Promise<void> {
   const autorizado = await solicitar_permisos_notificaciones();
 
@@ -32,6 +33,8 @@ export async function mostrar_notificacion_local(
         id: Date.now(),
         title: titulo,
         body: cuerpo,
+        extra: datos,
+        channelId: "syner_high_importance",
         schedule: {
           at: new Date(Date.now() + 1000),
         },

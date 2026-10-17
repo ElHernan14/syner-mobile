@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 using Syner.Api.Domain.Entities;
 
@@ -11,18 +12,93 @@ public static class SynerDbSeeder
     public static async Task SeedAsync(
         SynerDbContext db,
         PasswordService passwordService,
+        IConfiguration configuration,
+        bool incluirDatosDemo,
         CancellationToken cancellationToken = default)
     {
         await db.Database.MigrateAsync(cancellationToken);
 
         await SeedRolesAsync(db, cancellationToken);
-        await SeedUsuariosAsync(
+
+        if (incluirDatosDemo)
+        {
+            await SeedUsuariosAsync(
+                db,
+                passwordService,
+                cancellationToken
+            );
+            await SeedDatosDominioAsync(db, cancellationToken);
+            return;
+        }
+
+        await SeedAdministradorInicialAsync(
             db,
             passwordService,
+            configuration,
             cancellationToken
         );
+    }
 
-        await SeedDatosDominioAsync(db, cancellationToken);
+    private static async Task SeedAdministradorInicialAsync(
+        SynerDbContext db,
+        PasswordService passwordService,
+        IConfiguration configuration,
+        CancellationToken cancellationToken)
+    {
+        var rolAdmin = await db.Roles
+            .SingleAsync(x => x.Nombre == "admin", cancellationToken);
+
+        if (await db.Usuarios.AnyAsync(
+                x => x.RolId == rolAdmin.Id,
+                cancellationToken))
+        {
+            return;
+        }
+
+        var nombre = ObtenerConfiguracionObligatoria(
+            configuration,
+            "BootstrapAdmin:Name");
+        var correo = ObtenerConfiguracionObligatoria(
+            configuration,
+            "BootstrapAdmin:Email");
+        var telefono = ObtenerConfiguracionObligatoria(
+            configuration,
+            "BootstrapAdmin:Phone");
+        var dni = ObtenerConfiguracionObligatoria(
+            configuration,
+            "BootstrapAdmin:Dni");
+        var password = ObtenerConfiguracionObligatoria(
+            configuration,
+            "BootstrapAdmin:Password");
+
+        db.Usuarios.Add(new Usuario
+        {
+            Nombre = nombre.Trim(),
+            Correo = correo.Trim(),
+            Telefono = telefono.Trim(),
+            Dni = dni.Trim(),
+            RolId = rolAdmin.Id,
+            PasswordHash = passwordService.Hash(password),
+            Estado = "verificado"
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string ObtenerConfiguracionObligatoria(
+        IConfiguration configuration,
+        string clave)
+    {
+        var valor = configuration[clave];
+
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            throw new InvalidOperationException(
+                $"Falta configurar {clave} para crear el administrador inicial."
+            );
+        }
+
+        return valor;
     }
 
     private static async Task SeedRolesAsync(

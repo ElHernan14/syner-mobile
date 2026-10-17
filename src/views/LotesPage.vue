@@ -24,7 +24,7 @@
         <comp-esqueleto :filas="5" />
       </div>
 
-      <div v-else-if="error" class="syner-lotes__error">
+      <div v-else-if="error && !hay_lotes" class="syner-lotes__error">
         <p>{{ error }}</p>
 
         <ion-button fill="outline" @click="cargar_lotes">
@@ -45,12 +45,33 @@
       </div>
 
       <div v-else class="syner-lotes__list">
+        <div
+          v-if="hay_lotes && (error || !conectado)"
+          class="syner-lotes__offline-warning"
+        >
+          <ion-icon :icon="document_text_outline" />
+          <span>
+            {{
+              usando_cache || !conectado
+                ? "Estás sin conexión. Mostrando los últimos lotes guardados."
+                : error
+            }}
+          </span>
+        </div>
         <div v-for="lote in lotes" :key="lote.id" class="syner-lotes__item">
           <comp-lote-card
             :lote="lote"
             @editar="editar_lote"
             @eliminar="eliminar_lote_confirmar"
           />
+
+          <div
+            v-if="operaciones_pendientes.some((op) => op.loteId === lote.id)"
+            class="syner-lotes__pendiente"
+          >
+            <ion-badge color="warning">Sin enviar</ion-badge>
+            <span>El cambio se enviará cuando vuelva la conexión.</span>
+          </div>
 
           <!-- Acciones administrativas -->
           <div v-if="es_admin" class="syner-lotes__acciones">
@@ -315,6 +336,7 @@ import { computed, onMounted, ref } from "vue";
 
 import {
   IonAlert,
+  IonBadge,
   IonButton,
   IonButtons,
   IonContent,
@@ -350,18 +372,15 @@ import CompLoteFormulario from "@/components/lotes/comp_lote_formulario.vue";
 import { useLotes } from "@/composables/useLotes";
 import { useProveedores } from "@/composables/useProveedores";
 import { useAuthStore } from "@/stores/auth_store";
+import { conectado } from "@/services/conectividad_service";
 
-import {
-  obtener_pdf_lote,
-  obtener_qr_lote,
-  cambiar_estado_lote,
-} from "@/services/lotes_service";
+import { obtener_pdf_lote, obtener_qr_lote } from "@/services/lotes_service";
 
 import { abrir_pdf, compartir_pdf } from "@/services/archivo_service";
 
 import { adquirir_cupo as adquirir_cupo_api } from "@/services/pedidos_service";
 
-import type { Lote } from "@/models/LoteModel";
+import type { EstadoLote, Lote } from "@/models/LoteModel";
 import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
 import type { ActualizarLoteRequest } from "@/dtos/lotes/ActualizarLoteRequest";
 
@@ -375,7 +394,7 @@ const es_usuario = computed(() => {
   return auth_store.rol === "usuario";
 });
 
-const transiciones_estado: Record<string, string[]> = {
+const transiciones_estado: Record<EstadoLote, EstadoLote[]> = {
   borrador: ["fondeando", "cancelado"],
   fondeando: ["completado", "cancelado"],
   completado: ["comprado", "cancelado"],
@@ -395,7 +414,7 @@ const nombres_estado: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
-function obtener_transiciones(lote: Lote) {
+function obtener_transiciones(lote: Lote): EstadoLote[] {
   return transiciones_estado[lote.estado] ?? [];
 }
 
@@ -409,12 +428,16 @@ const {
   procesando,
   error,
   hay_lotes,
+  usando_cache,
+  operaciones_pendientes,
   page,
   total_paginas,
   cargar_lotes,
   crear_lote,
   actualizar_lote,
   eliminar_lote,
+  cambiar_estado_lote_local,
+  refrescar_operaciones_pendientes,
 } = useLotes();
 
 const {
@@ -451,7 +474,7 @@ let temporizador_busqueda: ReturnType<typeof setTimeout> | undefined;
 
 const modal_estado_abierto = ref(false);
 const lote_estado_seleccionado = ref<Lote | null>(null);
-const nuevo_estado_seleccionado = ref("");
+const nuevo_estado_seleccionado = ref<EstadoLote | "">("");
 const cambiando_estado = ref(false);
 
 function abrir_cambio_estado(lote: Lote) {
@@ -485,30 +508,47 @@ function cerrar_cambio_estado() {
 }
 
 async function confirmar_cambio_estado() {
-  if (!es_admin.value) {
-    return;
-  }
+  if (!es_admin.value) return;
 
   const lote = lote_estado_seleccionado.value;
+  const nuevo_estado = nuevo_estado_seleccionado.value;
+  const usuario_id = auth_store.usuario?.id;
 
-  if (!lote || !nuevo_estado_seleccionado.value) {
+  if (!lote || !nuevo_estado) return;
+
+  if (!usuario_id) {
+    mostrar_toast_error("No se pudo identificar al administrador.");
     return;
   }
 
   try {
     cambiando_estado.value = true;
 
-    await cambiar_estado_lote(lote.id, nuevo_estado_seleccionado.value);
-
-    mostrar_toast_exito(
-      `El lote "${lote.nombre}" ahora está ${nombre_estado(
-        nuevo_estado_seleccionado.value,
-      )}.`,
+    const resultado = await cambiar_estado_lote_local(
+      lote.id,
+      nuevo_estado,
+      usuario_id,
     );
+
+    if (resultado.pendiente) {
+      mostrar_toast_exito(
+        `Cambio guardado en el dispositivo. El lote "${lote.nombre}" figura Sin enviar.`,
+      );
+    } else {
+      mostrar_toast_exito(
+        `El lote "${lote.nombre}" ahora está ${nombre_estado(nuevo_estado)}.`,
+      );
+    }
 
     cerrar_cambio_estado();
 
-    await cargar_lotes(page.value, termino.value);
+    // No recargar si quedó pendiente: podríamos reemplazar
+    // el estado optimista por los datos viejos del caché.
+    if (!resultado.pendiente) {
+      await cargar_lotes(page.value, termino.value);
+    }
+
+    refrescar_operaciones_pendientes();
   } catch (error) {
     mostrar_toast_error(
       error instanceof Error
@@ -952,6 +992,32 @@ onMounted(() => {
 .syner-lotes__estado-modal-button {
   margin-top: 20px;
   font-weight: 700;
+}
+
+.syner-lotes__pendiente {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.syner-lotes__pendiente span {
+  color: var(--syner-text-secondary);
+  font-size: 12px;
+}
+
+.syner-lotes__offline-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--ion-color-warning);
+  border-radius: 10px;
+  color: var(--syner-text);
+  font-size: 13px;
 }
 
 @media (max-width: 768px) {
