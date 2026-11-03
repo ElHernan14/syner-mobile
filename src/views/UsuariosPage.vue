@@ -42,17 +42,8 @@
 
             <p>Rol: {{ usuario.rol }}</p>
 
-            <p
-              class="syner-usuarios__estado"
-              :class="{
-                'syner-usuarios__estado--verificado':
-                  usuario.estado === 'verificado',
-
-                'syner-usuarios__estado--bloqueado':
-                  usuario.estado === 'bloqueado',
-              }"
-            >
-              Estado: {{ usuario.estado }}
+            <p class="syner-usuarios__estado">
+              Estado: <comp-estado-badge :estado="usuario.estado" />
             </p>
 
             <p>
@@ -76,6 +67,7 @@ import { personCircleOutline } from "ionicons/icons";
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
+import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 
 import { useUsuarios } from "@/composables/useUsuarios";
 
@@ -113,11 +105,4 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.syner-usuarios__estado--verificado {
-  color: var(--syner-success);
-}
-
-.syner-usuarios__estado--bloqueado {
-  color: #ef4444;
-}
 </style>

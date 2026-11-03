@@ -6,33 +6,45 @@
           <div class="syner-login__header">
             <h1>SYNER</h1>
 
-            <p>Ingresá a tu cuenta para continuar.</p>
+            <p>Ingresá a tu cuenta para continuar. Los campos con * son obligatorios.</p>
           </div>
 
-          <form class="syner-login__form" @submit.prevent="iniciar_sesion">
+          <form class="syner-login__form" novalidate @submit.prevent="iniciar_sesion">
+            <div class="syner-login__field">
             <ion-item>
               <ion-input
                 v-model="correo"
                 type="email"
-                label="Correo"
+                label="Correo *"
                 label-placement="stacked"
                 placeholder="correo@ejemplo.com"
                 autocomplete="email"
+                required
+                :aria-invalid="!!errores.correo"
                 :disabled="cargando"
+                @ion-input="errores.correo = ''"
               />
             </ion-item>
+            <p v-if="errores.correo" class="syner-login__field-error" role="alert">{{ errores.correo }}</p>
+            </div>
 
+            <div class="syner-login__field">
             <ion-item>
               <ion-input
                 v-model="password"
                 type="password"
-                label="Contraseña"
+                label="Contraseña *"
                 label-placement="stacked"
                 placeholder="Ingresá tu contraseña"
                 autocomplete="current-password"
+                required
+                :aria-invalid="!!errores.password"
                 :disabled="cargando"
+                @ion-input="errores.password = ''"
               />
             </ion-item>
+            <p v-if="errores.password" class="syner-login__field-error" role="alert">{{ errores.password }}</p>
+            </div>
 
             <div v-if="error" class="syner-login__error" role="alert">
               {{ error }}
@@ -56,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, reactive, ref } from "vue";
 
 import {
   IonButton,
@@ -73,18 +85,32 @@ import { useAuth } from "@/composables/useAuth";
 
 const router = useRouter();
 
-const { cargando, error, iniciar_sesion: iniciar_sesion_auth } = useAuth();
+const { cargando, error: error_auth, iniciar_sesion: iniciar_sesion_auth } = useAuth();
 
 const correo = ref("");
 const password = ref("");
+const errores = reactive({ correo: "", password: "" });
+const error = computed(() => error_auth.value || "");
 
 async function iniciar_sesion() {
-  await iniciar_sesion_auth({
-    correo: correo.value.trim(),
-    password: password.value,
-  });
+  errores.correo = "";
+  errores.password = "";
+  const correo_limpio = correo.value.trim();
 
-  await router.replace("/app/inicio");
+  if (!correo_limpio) errores.correo = "El correo es obligatorio.";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo_limpio)) {
+    errores.correo = "Ingresá un correo válido (ej. nombre@dominio.com).";
+  }
+  if (!password.value.trim()) errores.password = "La contraseña es obligatoria.";
+  if (errores.correo || errores.password) return;
+
+  try {
+    await iniciar_sesion_auth({ correo: correo_limpio, password: password.value });
+    await router.replace("/app/inicio");
+  } catch {
+    // El store conserva y muestra el error de autenticación.
+  }
+
 }
 </script>
 
@@ -125,11 +151,19 @@ async function iniciar_sesion() {
   gap: 16px;
 }
 
+.syner-login__field { display: grid; gap: 6px; }
+
 .syner-login ion-item {
   --background: var(--syner-surface);
   --border-color: var(--syner-border);
   --highlight-color-focused: var(--syner-primary);
   border-radius: 10px;
+}
+
+.syner-login__field-error {
+  margin: -10px 8px 0;
+  color: var(--ion-color-danger);
+  font-size: 13px;
 }
 
 .syner-login__error {

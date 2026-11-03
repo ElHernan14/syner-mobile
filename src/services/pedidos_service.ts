@@ -27,6 +27,7 @@ export async function obtener_pedidos(
   limit = 10,
   termino?: string,
   sort?: string,
+  pedido_id?: number,
 ): Promise<ResultadoPaginado<Pedido>> {
   const parametros = new URLSearchParams({
     page: String(pagina),
@@ -39,6 +40,10 @@ export async function obtener_pedidos(
 
   if (sort) {
     parametros.set("sort", sort);
+  }
+
+  if (pedido_id !== undefined) {
+    parametros.set("pedidoId", String(pedido_id));
   }
 
   const respuesta = await obtener<ApiResponse<ResultadoPaginado<PedidoApi>>>(

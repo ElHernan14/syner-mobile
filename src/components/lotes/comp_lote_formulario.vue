@@ -13,10 +13,11 @@
             : "Completá los datos para crear un nuevo lote."
         }}
       </ion-card-subtitle>
+      <p class="syner-lote-formulario__hint">Todos los campos son obligatorios. Si falta un dato o no cumple las reglas, se indica debajo del campo.</p>
     </ion-card-header>
 
     <ion-card-content>
-      <form @submit.prevent="guardar">
+      <form novalidate @submit.prevent="guardar">
         <div class="syner-lote-formulario__grid">
           <div class="syner-lote-formulario__field">
             <ion-input
@@ -228,7 +229,7 @@
           </div>
         </div>
 
-        <p v-if="error" class="syner-lote-formulario__error">
+        <p v-if="error" class="syner-lote-formulario__error" role="alert">
           {{ error }}
         </p>
 
@@ -530,6 +531,12 @@ function cancelar() {
 
 .syner-lote-formulario ion-card-header {
   padding-bottom: 8px;
+}
+
+.syner-lote-formulario__hint {
+  margin: 8px 0 16px;
+  color: var(--syner-text-secondary);
+  font-size: 13px;
 }
 
 .syner-lote-formulario__grid {

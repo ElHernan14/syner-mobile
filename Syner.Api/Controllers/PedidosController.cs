@@ -34,6 +34,7 @@ public sealed class PedidosController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> ObtenerTodos(
         [FromQuery] Paginacion paginacion,
+        [FromQuery] long? pedidoId,
         CancellationToken cancellationToken)
     {
         try
@@ -52,6 +53,19 @@ public sealed class PedidosController : ControllerBase
         var consulta = _db.Pedidos
             .AsNoTracking()
             .AsQueryable();
+
+        if (pedidoId.HasValue)
+        {
+            if (pedidoId.Value <= 0)
+            {
+                return RespuestaHttp.BadRequest<object>(
+                    this,
+                    "El identificador del pedido no es válido."
+                );
+            }
+
+            consulta = consulta.Where(pedido => pedido.Id == pedidoId.Value);
+        }
 
         if (!string.IsNullOrWhiteSpace(paginacion.Termino))
         {
@@ -434,6 +448,18 @@ public sealed class PedidosController : ControllerBase
                 "Nuevo cupo adquirido",
                 $"{usuario.Nombre} adquirió un cupo en el lote '{lote.Nombre}'.",
                 "pedido_nuevo",
+                "pedido",
+                pedido.Id,
+                cancellationToken
+            );
+
+            // Cada notificación persistida también debe llegar por push al
+            // mismo destinatario, incluida la confirmación del comprador.
+            await _notificacion_push_service.EnviarAUsuariosAsync(
+                [usuarioId.Value],
+                "Cupo solicitado",
+                $"Tu cupo para el lote '{lote.Nombre}' fue registrado correctamente.",
+                "pedido_creado",
                 "pedido",
                 pedido.Id,
                 cancellationToken

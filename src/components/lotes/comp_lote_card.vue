@@ -12,9 +12,7 @@
           </ion-card-title>
         </div>
 
-        <ion-badge :color="estado_visual.color">
-          {{ estado_visual.etiqueta }}
-        </ion-badge>
+        <comp-estado-badge :estado="lote.estado" />
       </div>
     </ion-card-header>
 
@@ -87,7 +85,6 @@
 import { computed } from "vue";
 
 import {
-  IonBadge,
   IonButton,
   IonCard,
   IonCardContent,
@@ -98,7 +95,7 @@ import {
 } from "@ionic/vue";
 
 import type { Lote } from "@/models/LoteModel";
-import { obtener_estado_visual } from "@/config/estados";
+import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 
 const props = defineProps<{
   lote: Lote;
@@ -135,7 +132,6 @@ const puede_eliminar = computed(() => {
   ].includes(props.lote.estado);
 });
 
-const estado_visual = computed(() => obtener_estado_visual(props.lote.estado));
 </script>
 
 <style scoped>

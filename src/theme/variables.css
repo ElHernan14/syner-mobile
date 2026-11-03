@@ -16,8 +16,30 @@ http://ionicframework.com/docs/theming/ */
   --ion-color-primary-shade: #575bd4;
   --ion-color-primary-tint: #7375f2;
   --ion-color-success: #10b981;
+  --ion-color-success-rgb: 16, 185, 129;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-shade: #0ea173;
+  --ion-color-success-tint: #28bf8e;
   --ion-color-warning: #f59e0b;
+  --ion-color-warning-rgb: 245, 158, 11;
+  --ion-color-warning-contrast: #111827;
+  --ion-color-warning-shade: #d8890a;
+  --ion-color-warning-tint: #f6a724;
   --ion-color-danger: #ef4444;
+  --ion-color-danger-rgb: 239, 68, 68;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-shade: #d23c3c;
+  --ion-color-danger-tint: #f15757;
+  --ion-color-tertiary: #8b5cf6;
+  --ion-color-tertiary-rgb: 139, 92, 246;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-shade: #7a51d8;
+  --ion-color-tertiary-tint: #966df7;
+  --ion-color-medium: #6b7280;
+  --ion-color-medium-rgb: 107, 114, 128;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-shade: #5e6471;
+  --ion-color-medium-tint: #7a808c;
   --ion-background-color: var(--syner-background);
   --ion-text-color: var(--syner-text);
   --ion-card-background: var(--syner-surface);
@@ -37,4 +59,30 @@ html.syner-theme-dark {
   --ion-background-color: var(--syner-background);
   --ion-text-color: var(--syner-text);
   --ion-card-background: var(--syner-surface);
+  --ion-color-primary: #818cf8;
+  --ion-color-primary-rgb: 129, 140, 248;
+  --ion-color-primary-shade: #727bd9;
+  --ion-color-primary-tint: #8e98f9;
+  --ion-color-success: #34d399;
+  --ion-color-success-rgb: 52, 211, 153;
+  --ion-color-success-contrast: #06281d;
+  --ion-color-success-shade: #2db987;
+  --ion-color-success-tint: #47d7a3;
+  --ion-color-warning: #fbbf24;
+  --ion-color-warning-rgb: 251, 191, 36;
+  --ion-color-warning-contrast: #332000;
+  --ion-color-danger: #f87171;
+  --ion-color-danger-rgb: 248, 113, 113;
+  --ion-color-danger-contrast: #3b0909;
+  --ion-color-tertiary: #a78bfa;
+  --ion-color-tertiary-rgb: 167, 139, 250;
+  --ion-color-tertiary-contrast: #1e123f;
+  --ion-color-medium: #9ca3af;
+  --ion-color-medium-rgb: 156, 163, 175;
+  --ion-color-medium-contrast: #111827;
+}
+
+ion-card {
+  border-radius: var(--syner-radius);
+  box-shadow: var(--syner-shadow);
 }

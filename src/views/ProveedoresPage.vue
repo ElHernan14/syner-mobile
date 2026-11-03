@@ -42,17 +42,11 @@
               {{ proveedor.descripcion }}
             </p>
 
-            <p
-              class="syner-proveedores__estado"
-              :class="{
-                'syner-proveedores__estado--verificado': proveedor.verificado,
-              }"
-            >
-              {{
-                proveedor.verificado
-                  ? "Proveedor verificado"
-                  : "Proveedor no verificado"
-              }}
+            <p class="syner-proveedores__estado">
+              Estado:
+              <comp-estado-badge
+                :estado="proveedor.verificado ? 'verificado' : 'sin verificar'"
+              />
             </p>
           </ion-label>
         </ion-item>
@@ -71,6 +65,7 @@ import { businessOutline } from "ionicons/icons";
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
+import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 
 import { useProveedores } from "@/composables/useProveedores";
 
@@ -108,7 +103,4 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.syner-proveedores__estado--verificado {
-  color: var(--syner-success);
-}
 </style>

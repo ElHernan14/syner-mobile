@@ -20,12 +20,18 @@ export const usePedidosStore = defineStore("pedidos", () => {
   const total = ref(0);
   const total_paginas = ref(0);
 
-  async function cargar(pagina = 1) {
+  async function cargar(pagina = 1, pedido_id?: number) {
     cargando.value = true;
     error.value = null;
 
     try {
-      const resultado = await obtener_pedidos(pagina, limit.value);
+      const resultado = await obtener_pedidos(
+        pagina,
+        limit.value,
+        undefined,
+        undefined,
+        pedido_id,
+      );
 
       pedidos.value = resultado.datos;
 

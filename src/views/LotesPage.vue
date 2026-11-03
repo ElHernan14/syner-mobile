@@ -24,20 +24,21 @@
         <comp-esqueleto :filas="5" />
       </div>
 
-      <div v-else-if="error && !hay_lotes" class="syner-lotes__error">
-        <p>{{ error }}</p>
-
-        <ion-button fill="outline" @click="cargar_lotes">
-          Reintentar
-        </ion-button>
-      </div>
+      <comp-estado-listado
+        v-else-if="error && !hay_lotes"
+        tipo="error"
+        titulo="No se pudieron cargar los lotes"
+        :mensaje="error"
+        reintentar
+        @reintentar="cargar_lotes"
+      />
 
       <div v-else-if="!hay_lotes" class="syner-lotes__empty">
-        <p>
-          {{
-            termino ? "No se encontraron lotes." : "No hay lotes disponibles."
-          }}
-        </p>
+        <comp-estado-listado
+          tipo="vacio"
+          :titulo="termino ? 'No se encontraron lotes' : 'No hay lotes disponibles'"
+          :mensaje="termino ? 'Probá con otro término de búsqueda.' : 'Los lotes disponibles aparecerán en este listado.'"
+        />
 
         <ion-button v-if="es_admin && !termino" @click="nuevo_lote">
           Crear primer lote
@@ -243,11 +244,9 @@
             {{ lote_estado_seleccionado.nombre }}
           </h2>
 
-          <p>
+          <p class="syner-lotes__estado-modal-current">
             Estado actual:
-            <strong>
-              {{ nombre_estado(lote_estado_seleccionado.estado) }}
-            </strong>
+            <comp-estado-badge :estado="lote_estado_seleccionado.estado" />
           </p>
 
           <ion-item>
@@ -364,6 +363,8 @@ import {
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
+import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
+import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 import CompPaginacion from "@/components/shared/comp_paginacion.vue";
 import CompLoteCard from "@/components/lotes/comp_lote_card.vue";
 import CompLoteFiltros from "@/components/lotes/comp_lote_filtros.vue";

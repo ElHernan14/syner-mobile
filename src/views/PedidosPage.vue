@@ -5,6 +5,7 @@
     @actualizar="cargar_pedidos"
   >
     <div class="syner-pedidos">
+      <h1 v-if="pedido_id" class="syner-pedidos__target">Pedido #{{ pedido_id }}</h1>
       <div v-if="cargando" class="syner-pedidos__loading">
         <comp-esqueleto :filas="5" />
       </div>
@@ -21,8 +22,8 @@
       <comp-estado-listado
         v-else-if="!hay_pedidos"
         tipo="vacio"
-        titulo="No hay pedidos todavía"
-        mensaje="Cuando se registren pedidos, aparecerán en este listado."
+        :titulo="pedido_id ? 'No se encontró el pedido' : 'No hay pedidos todavía'"
+        :mensaje="pedido_id ? 'El pedido puede haber sido eliminado o ya no estar disponible.' : 'Cuando se registren pedidos, aparecerán en este listado.'"
       />
 
       <ion-list v-else :inset="true">
@@ -44,9 +45,7 @@
 
             <p>
               Estado:
-              <strong>
-                {{ nombre_estado(pedido.estado) }}
-              </strong>
+              <comp-estado-badge :estado="pedido.estado" />
             </p>
 
             <p v-if="pedido.numeroSeguimiento">
@@ -66,7 +65,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 
 import { IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue";
 
@@ -75,18 +75,23 @@ import { receiptOutline } from "ionicons/icons";
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
-import { obtener_estado_visual } from "@/config/estados";
+import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 
 import { usePedidos } from "@/composables/usePedidos";
 
+const route = useRoute();
 const { pedidos, cargando, error, hay_pedidos, cargar_pedidos } = usePedidos();
-
-function nombre_estado(estado: string) {
-  return obtener_estado_visual(estado).etiqueta;
-}
+const pedido_id = computed(() => {
+  const id = Number(route.query.pedidoId);
+  return Number.isInteger(id) && id > 0 ? id : null;
+});
 
 onMounted(() => {
-  cargar_pedidos();
+  cargar_pedidos(pedido_id.value ?? undefined);
+});
+
+watch(() => route.query.pedidoId, () => {
+  cargar_pedidos(pedido_id.value ?? undefined);
 });
 </script>
 
@@ -99,6 +104,12 @@ onMounted(() => {
 
 .syner-pedidos__loading {
   padding: 0;
+}
+
+.syner-pedidos__target {
+  margin: 0 0 16px;
+  color: var(--syner-text);
+  font-size: 22px;
 }
 
 .syner-pedidos__error,

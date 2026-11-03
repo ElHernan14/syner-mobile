@@ -31,27 +31,21 @@
           <p>Cargando notificaciones...</p>
         </div>
 
-        <div
+        <comp-estado-listado
           v-else-if="notificaciones_store.error"
-          class="syner-notificaciones__estado"
-        >
-          <ion-icon :icon="alertCircleOutline" />
+          tipo="error"
+          titulo="No se pudieron cargar las notificaciones"
+          :mensaje="notificaciones_store.error"
+          reintentar
+          @reintentar="cargar"
+        />
 
-          <p>{{ notificaciones_store.error }}</p>
-
-          <ion-button fill="outline" @click="cargar"> Reintentar </ion-button>
-        </div>
-
-        <div
+        <comp-estado-listado
           v-else-if="notificaciones_store.notificaciones.length === 0"
-          class="syner-notificaciones__estado"
-        >
-          <ion-icon :icon="notificationsOffOutline" />
-
-          <h2>No tenés notificaciones</h2>
-
-          <p>Cuando haya novedades, aparecerán acá.</p>
-        </div>
+          tipo="vacio"
+          titulo="No tenés notificaciones"
+          mensaje="Cuando haya novedades, aparecerán acá."
+        />
 
         <ion-list v-else class="syner-notificaciones__list" :inset="true">
           <ion-item
@@ -113,7 +107,6 @@ import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   IonBadge,
-  IonButton,
   IonIcon,
   IonItem,
   IonLabel,
@@ -122,15 +115,14 @@ import {
   IonToast,
 } from "@ionic/vue";
 import {
-  alertCircleOutline,
   ellipseOutline,
   layersOutline,
-  notificationsOffOutline,
   notificationsOutline,
   receiptOutline,
 } from "ionicons/icons";
 
 import CompPage from "@/components/shared/comp_page.vue";
+import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
 import { useNotificacionesStore } from "@/stores/notificaciones_store";
 import type { Notificacion } from "@/models/notificacion";
 

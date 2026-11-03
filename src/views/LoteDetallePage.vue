@@ -9,13 +9,21 @@
         <comp-esqueleto :filas="7" />
       </div>
 
-      <div v-else-if="error" class="syner-lote-detalle__error">
-        <p>{{ error }}</p>
+      <comp-estado-listado
+        v-else-if="error"
+        tipo="error"
+        titulo="No se pudo cargar el lote"
+        :mensaje="error"
+        reintentar
+        @reintentar="cargar_lote"
+      />
 
-        <ion-button fill="outline" @click="cargar_lote">
-          Reintentar
-        </ion-button>
-      </div>
+      <comp-estado-listado
+        v-else-if="!lote"
+        tipo="vacio"
+        titulo="No se encontró el lote"
+        mensaje="El lote puede haber sido eliminado o ya no estar disponible."
+      />
 
       <template v-else-if="lote">
         <div class="syner-lote-detalle__header">
@@ -29,9 +37,7 @@
             </h1>
           </div>
 
-          <span class="syner-lote-detalle__estado">
-            {{ lote.estado }}
-          </span>
+          <comp-estado-badge :estado="lote.estado" />
         </div>
 
         <div class="syner-lote-detalle__card">
@@ -108,13 +114,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 
-import { IonButton } from "@ionic/vue";
-
 import { useRoute } from "vue-router";
 
 import CompPage from "@/components/shared/comp_page.vue";
 
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
+import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
+import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
 
 import { obtener_lote } from "@/services/lotes_service";
 

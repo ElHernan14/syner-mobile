@@ -5,6 +5,7 @@ import {
   type Token,
 } from "@capacitor/push-notifications";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { Capacitor } from "@capacitor/core";
 
 import { registrar_dispositivo } from "@/services/dispositivos_service";
 import { desactivar_dispositivo } from "@/services/dispositivos_service";
@@ -31,6 +32,17 @@ export async function registrar_push(): Promise<void> {
 
   if (!autorizado) {
     throw new Error("No se otorgaron permisos para recibir notificaciones.");
+  }
+
+  if (Capacitor.getPlatform() === "android") {
+    await LocalNotifications.createChannel({
+      id: "syner_high_importance",
+      name: "Notificaciones de SYNER",
+      description: "Novedades sobre lotes y pedidos.",
+      importance: 5,
+      sound: "default",
+      vibration: true,
+    });
   }
 
   registrar_listeners();
@@ -91,9 +103,10 @@ export async function desactivar_push(): Promise<void> {
     return;
   }
 
-  try {
-    await desactivar_dispositivo(token);
-  } finally {
+  await desactivar_dispositivo(token);
+  // Si el servidor no confirma la baja, conservamos el token para poder
+  // reintentarla en el siguiente inicio de sesión.
+  if (localStorage.getItem(PUSH_TOKEN_KEY) === token) {
     localStorage.removeItem(PUSH_TOKEN_KEY);
   }
 }

@@ -7,8 +7,8 @@ export function usePedidos() {
 
   const { pedidos, cargando, error, hay_pedidos } = storeToRefs(pedidos_store);
 
-  function cargar_pedidos() {
-    return pedidos_store.cargar();
+  function cargar_pedidos(pedido_id?: number) {
+    return pedidos_store.cargar(1, pedido_id);
   }
 
   return {
