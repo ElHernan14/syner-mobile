@@ -27,7 +27,9 @@ public sealed class FirebasePushService
     {
         if (_messaging is null)
         {
-            _logger.LogDebug("Push omitida porque Firebase no está configurado.");
+            _logger.LogWarning(
+                "No se envió la push porque Firebase no está configurado en este entorno."
+            );
             return string.Empty;
         }
 
@@ -70,7 +72,9 @@ public sealed class FirebasePushService
 
         if (_messaging is null)
         {
-            _logger.LogDebug("Push múltiple omitida porque Firebase no está configurado.");
+            _logger.LogWarning(
+                "No se enviaron las push porque Firebase no está configurado en este entorno."
+            );
             return [];
         }
 
@@ -103,12 +107,22 @@ public sealed class FirebasePushService
 
                 resultados.Add(response);
             }
-            catch
+            catch (Exception ex)
             {
                 // Un token inválido no debe impedir
                 // el envío al resto de los dispositivos.
+                _logger.LogWarning(
+                    ex,
+                    "Firebase rechazó una push para un dispositivo registrado. El token se omite en el log."
+                );
             }
         }
+
+        _logger.LogInformation(
+            "Firebase aceptó {CantidadEnviada} de {CantidadObjetivo} notificaciones push.",
+            resultados.Count,
+            tokensLista.Count
+        );
 
         return resultados;
     }
