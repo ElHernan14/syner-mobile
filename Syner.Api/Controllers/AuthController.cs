@@ -9,6 +9,7 @@ using Syner.Api.Data.Responses;
 using Syner.Api.Data.Validation;
 using Syner.Api.Domain.DTOs.Auth;
 using Syner.Api.Services;
+using Syner.Api.Domain.Entities;
 
 namespace Syner.Api.Controllers;
 
@@ -330,4 +331,105 @@ public sealed class AuthController : ControllerBase
             "Puede cerrar la sesión en el cliente eliminando el access token y el refresh token almacenados."
         );
     }
+
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register(
+        RegistrarUsuarioRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validacionModelState = ValidadorModelState.Validar(ModelState);
+
+        if (!validacionModelState.EsValido)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "Los datos enviados no son válidos.",
+                validacionModelState.Errores.ToArray()
+            );
+        }
+
+        var validacion = request.Validar();
+
+        if (!validacion.EsValido)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "Los datos enviados no son válidos.",
+                validacion.Errores.ToArray()
+            );
+        }
+
+        var correo = request.Correo.Trim().ToLowerInvariant();
+        var dni = request.Dni.Trim();
+
+        var correoExiste = await _db.Usuarios
+            .AnyAsync(x => x.Correo == correo, cancellationToken);
+
+        if (correoExiste)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "Ya existe un usuario registrado con ese correo."
+            );
+        }
+
+        var dniExiste = await _db.Usuarios
+            .AnyAsync(x => x.Dni == dni, cancellationToken);
+
+        if (dniExiste)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "Ya existe un usuario registrado con ese DNI."
+            );
+        }
+
+        var rolUsuario = await _db.Roles
+            .SingleOrDefaultAsync(
+                x => x.Nombre == "usuario",
+                cancellationToken
+            );
+
+        if (rolUsuario is null)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "No se encuentra configurado el rol de usuario."
+            );
+        }
+
+        var usuario = new Usuario
+        {
+            Nombre = request.Nombre.Trim(),
+            Correo = correo,
+            Telefono = request.Telefono.Trim(),
+            Dni = dni,
+            RolId = rolUsuario.Id,
+            PasswordHash = _passwordService.Hash(request.Password),
+            Estado = "verificado"
+        };
+
+        _db.Usuarios.Add(usuario);
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var resultado = new
+        {
+            id = usuario.Id,
+            nombre = usuario.Nombre,
+            correo = usuario.Correo,
+            telefono = usuario.Telefono,
+            dni = usuario.Dni,
+            rol = rolUsuario.Nombre,
+            estado = usuario.Estado
+        };
+
+        return RespuestaHttp.Ok(
+            this,
+            "Usuario registrado correctamente.",
+            resultado
+        );
+    }
+
 }
