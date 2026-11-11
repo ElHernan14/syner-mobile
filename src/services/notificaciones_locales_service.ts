@@ -27,10 +27,13 @@ export async function mostrar_notificacion_local(
     throw new Error("No se otorgaron permisos para mostrar notificaciones.");
   }
 
+  // Android requires notification IDs to fit a signed 32-bit integer.
+  const id_notificacion = Math.floor(Date.now() % 2_147_483_647) || 1;
+
   await LocalNotifications.schedule({
     notifications: [
       {
-        id: Date.now(),
+        id: id_notificacion,
         title: titulo,
         body: cuerpo,
         extra: datos,

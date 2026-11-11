@@ -533,6 +533,29 @@ function cancelar() {
   padding-bottom: 8px;
 }
 
+.syner-lote-formulario ion-card-title {
+  --color: var(--syner-text);
+  color: var(--syner-text);
+}
+
+.syner-lote-formulario ion-card-subtitle {
+  --color: var(--syner-text-secondary);
+  color: var(--syner-text-secondary);
+}
+
+.syner-lote-formulario ion-input,
+.syner-lote-formulario ion-textarea,
+.syner-lote-formulario ion-select {
+  --background: var(--syner-surface);
+  --color: var(--syner-text);
+  --placeholder-color: var(--syner-text-secondary);
+  --label-color: var(--syner-text-secondary);
+  --highlight-color-focused: var(--syner-primary);
+  --highlight-color-valid: var(--syner-success);
+  --highlight-color-invalid: var(--ion-color-danger);
+  --border-color: var(--syner-border);
+}
+
 .syner-lote-formulario__hint {
   margin: 8px 0 16px;
   color: var(--syner-text-secondary);

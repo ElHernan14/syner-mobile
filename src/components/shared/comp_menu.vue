@@ -110,9 +110,11 @@ import {
 
 import {
   businessOutline,
+  locationOutline,
   homeOutline,
   layersOutline,
   logOutOutline,
+  notificationsOutline,
   peopleOutline,
   personCircleOutline,
   receiptOutline,
@@ -143,11 +145,14 @@ const grupos = obtener_grupos_menu();
 
 const iconos = {
   "home-outline": homeOutline,
+  "notifications-outline": notificationsOutline,
   "layers-outline": layersOutline,
   "receipt-outline": receiptOutline,
   "business-outline": businessOutline,
   "people-outline": peopleOutline,
   "qr-code-outline": qrCodeOutline,
+  "person-circle-outline": personCircleOutline,
+  "location-outline": locationOutline,
 };
 
 const nombre_usuario = computed(() => {
@@ -171,7 +176,7 @@ async function cargar_cantidad_notificaciones() {
 }
 
 function obtener_icono(nombre: string) {
-  return iconos[nombre as keyof typeof iconos];
+  return iconos[nombre as keyof typeof iconos] ?? homeOutline;
 }
 
 function tiene_acceso(item: (typeof navegacion)[number]) {

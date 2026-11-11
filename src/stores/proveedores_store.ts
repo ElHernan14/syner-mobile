@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
 import type { Proveedor } from "@/models/proveedor";
-import { obtener_proveedores } from "@/services/proveedores_service";
+import { obtener_proveedores, obtener_proveedores_cache } from "@/services/proveedores_service";
 
 export const useProveedoresStore = defineStore("proveedores", () => {
   const proveedores = ref<Proveedor[]>([]);
@@ -20,8 +20,11 @@ export const useProveedoresStore = defineStore("proveedores", () => {
     } catch (err) {
       console.error("Error al cargar proveedores:", err);
 
-      error.value =
-        err instanceof Error
+      proveedores.value = obtener_proveedores_cache();
+
+      error.value = proveedores.value.length > 0
+        ? null
+        : err instanceof Error
           ? err.message
           : "No se pudieron cargar los proveedores.";
     } finally {

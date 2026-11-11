@@ -43,7 +43,10 @@ function obtener_sesion_persistida(): SesionPersistida | null {
       return null;
     }
 
-    return sesion;
+    return {
+      ...sesion,
+      usuario: { ...sesion.usuario, id: String(sesion.usuario.id) },
+    };
   } catch {
     localStorage.removeItem(STORAGE_KEY);
     return null;
@@ -177,12 +180,16 @@ export const useAuthStore = defineStore("auth", () => {
 
       access_token.value = datos.accessToken;
       refresh_token.value = datos.refreshToken;
-      usuario.value = datos.usuario;
+      const usuario_normalizado = {
+        ...datos.usuario,
+        id: String(datos.usuario.id),
+      };
+      usuario.value = usuario_normalizado;
 
       guardar_sesion(
         datos.accessToken,
         datos.refreshToken,
-        datos.usuario,
+        usuario_normalizado,
         biometria_activa.value,
       );
 
@@ -226,12 +233,16 @@ export const useAuthStore = defineStore("auth", () => {
 
       access_token.value = datos.accessToken;
       refresh_token.value = datos.refreshToken;
-      usuario.value = datos.usuario;
+      const usuario_normalizado = {
+        ...datos.usuario,
+        id: String(datos.usuario.id),
+      };
+      usuario.value = usuario_normalizado;
 
       guardar_sesion(
         datos.accessToken,
         datos.refreshToken,
-        datos.usuario,
+        usuario_normalizado,
         biometria_activa.value,
       );
 

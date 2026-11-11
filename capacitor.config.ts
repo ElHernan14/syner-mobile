@@ -15,6 +15,9 @@ const config: CapacitorConfig = {
       iconColor: "#0077F8",
     },
   },
+  android: {
+    webContentsDebuggingEnabled: true,
+  },
 };
 
 export default config;

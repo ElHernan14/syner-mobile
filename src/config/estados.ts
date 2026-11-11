@@ -31,10 +31,25 @@ const estados: Record<string, EstadoVisual> = {
   "sin verificar": { etiqueta: "Sin verificar", color: "warning", icono: alertCircleOutline },
 };
 
-export function obtener_estado_visual(estado: string): EstadoVisual {
-  const estado_normalizado = estado.trim().toLowerCase();
+const etiquetas_estado_api: Record<number, string> = {
+  0: "borrador",
+  1: "fondeando",
+  2: "completado",
+  3: "comprado",
+  4: "enviado",
+  5: "entregado",
+  6: "cancelado",
+};
+
+export function obtener_estado_visual(estado: unknown): EstadoVisual {
+  const valor = typeof estado === "string"
+    ? estado.trim()
+    : typeof estado === "number"
+      ? etiquetas_estado_api[estado] ?? String(estado)
+      : "";
+  const estado_normalizado = valor.toLowerCase();
   return estados[estado_normalizado] ?? {
-    etiqueta: estado.trim() || "Sin estado",
+    etiqueta: valor || "Sin estado",
     color: "medium",
     icono: alertCircleOutline,
   };

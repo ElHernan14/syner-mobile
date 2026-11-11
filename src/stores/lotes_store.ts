@@ -13,6 +13,7 @@ import {
 import type { Lote, EstadoLote } from "@/models/LoteModel";
 import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
 import type { ActualizarLoteRequest } from "@/dtos/lotes/ActualizarLoteRequest";
+import { obtener_proveedores_cache } from "@/services/proveedores_service";
 import {
   construir_clave_cache_lotes,
   guardar_cache_lotes,
@@ -21,6 +22,8 @@ import {
 import { ApiError } from "@/services/ajax_service";
 import {
   encolar_cambio_estado_lote,
+  encolar_creacion_lote,
+  encolar_actualizacion_lote,
   obtener_operaciones_pendientes,
   type OperacionPendienteLote,
 } from "@/services/cola_offline_lotes_service";
@@ -55,17 +58,52 @@ export const useLotesStore = defineStore("lotes", () => {
   );
 
   function aplicar_cambios_pendientes(lotes_a_mostrar: Lote[]): Lote[] {
-    const estados_pendientes = new Map(
-      obtener_operaciones_pendientes(auth_store.usuario?.id).map(
-        (operacion) => [operacion.loteId, operacion.estado],
-      ),
-    );
+    const resultado = [...lotes_a_mostrar];
+    for (const operacion of obtener_operaciones_pendientes(auth_store.usuario?.id)) {
+      const indice = resultado.findIndex((lote) => lote.id === operacion.loteId);
+      if (operacion.tipo === "crear") {
+        if (indice < 0) resultado.push(crear_lote_local(operacion.loteId, operacion.request));
+      } else if (operacion.tipo === "actualizar") {
+        if (indice >= 0) resultado[indice] = { ...resultado[indice], ...mapear_request_local(operacion.request) };
+      } else if (indice >= 0) {
+        resultado[indice] = { ...resultado[indice], estado: operacion.estado };
+      }
+    }
+    return resultado;
+  }
 
-    return lotes_a_mostrar.map((lote) => {
-      const estado_pendiente = estados_pendientes.get(lote.id);
+  function mapear_request_local(request: ActualizarLoteRequest) {
+    const proveedor = obtener_proveedores_cache().find((item) => Number(item.id) === request.proveedorId);
+    return {
+      nombre: request.nombre,
+      descripcion: request.descripcion,
+      categoria: request.categoria,
+      precioMercado: request.precioMercado,
+      precioCupo: request.precioCupo,
+      porcentajeAhorro: request.porcentajeAhorro,
+      cantidadCupos: request.cantidadCupos,
+      fechaInicio: request.fechaInicio,
+      fechaFin: request.fechaFin,
+      proveedorId: request.proveedorId,
+      ...(proveedor ? { proveedor: { ...proveedor, id: Number(proveedor.id) } } : {}),
+    };
+  }
 
-      return estado_pendiente ? { ...lote, estado: estado_pendiente } : lote;
-    });
+  function crear_lote_local(id: number, request: CrearLoteRequest): Lote {
+    const proveedor = obtener_proveedores_cache().find((item) => Number(item.id) === request.proveedorId);
+    return {
+      id,
+      ...mapear_request_local(request),
+      cuposOcupados: 0,
+      estado: "borrador",
+      proveedor: proveedor
+        ? { ...proveedor, id: Number(proveedor.id) }
+        : { id: request.proveedorId, nombre: `Proveedor #${request.proveedorId}`, descripcion: "", verificado: false },
+    };
+  }
+
+  function siguiente_id_temporal(): number {
+    return Math.min(0, ...lotes.value.map((lote) => lote.id)) - 1;
   }
 
   async function cargar(pagina = 1, termino?: string, sort?: string) {
@@ -88,7 +126,7 @@ export const useLotesStore = defineStore("lotes", () => {
       limit.value = resultado.limit;
       total.value = resultado.total;
       total_paginas.value = resultado.totalPaginas;
-      hay_lotes.value = resultado.datos.length > 0;
+      hay_lotes.value = lotes.value.length > 0;
 
       guardar_cache_lotes(clave_cache, resultado);
     } catch (err) {
@@ -105,11 +143,11 @@ export const useLotesStore = defineStore("lotes", () => {
         limit.value = cache.limit;
         total.value = cache.total;
         total_paginas.value = cache.totalPaginas;
-        hay_lotes.value = cache.datos.length > 0;
+        hay_lotes.value = lotes.value.length > 0;
         usando_cache.value = true;
       } else {
-        lotes.value = [];
-        hay_lotes.value = false;
+        lotes.value = aplicar_cambios_pendientes([]);
+        hay_lotes.value = lotes.value.length > 0;
         total.value = 0;
         total_paginas.value = 0;
       }
@@ -123,6 +161,17 @@ export const useLotesStore = defineStore("lotes", () => {
     error.value = null;
 
     try {
+      if (!(await hay_conexion())) {
+        const usuario_id = auth_store.usuario?.id;
+        if (!usuario_id) throw new Error("No se pudo identificar al administrador.");
+        const lote = crear_lote_local(siguiente_id_temporal(), request);
+        encolar_creacion_lote(lote.id, request, usuario_id);
+        lotes.value.push(lote);
+        total.value += 1;
+        hay_lotes.value = true;
+        refrescar_operaciones_pendientes();
+        return lote;
+      }
       const lote = await crear_lote(request);
 
       lotes.value.push(lote);
@@ -130,6 +179,17 @@ export const useLotesStore = defineStore("lotes", () => {
 
       return lote;
     } catch (err) {
+      if (es_fallo_temporal(err)) {
+        const usuario_id = auth_store.usuario?.id;
+        if (!usuario_id) throw new Error("No se pudo identificar al administrador.");
+        const lote = crear_lote_local(siguiente_id_temporal(), request);
+        encolar_creacion_lote(lote.id, request, usuario_id);
+        lotes.value.push(lote);
+        total.value += 1;
+        hay_lotes.value = true;
+        refrescar_operaciones_pendientes();
+        return lote;
+      }
       const mensaje = obtener_mensaje_error(err, "No se pudo crear el lote.");
 
       error.value = mensaje;
@@ -145,6 +205,19 @@ export const useLotesStore = defineStore("lotes", () => {
     error.value = null;
 
     try {
+      if (!(await hay_conexion())) {
+        const usuario_id = auth_store.usuario?.id;
+        if (!usuario_id) throw new Error("No se pudo identificar al administrador.");
+        if (id < 0) {
+          encolar_actualizacion_lote(id, request, usuario_id);
+        } else {
+          encolar_actualizacion_lote(id, request, usuario_id);
+        }
+        const indice = lotes.value.findIndex((item) => item.id === id);
+        if (indice >= 0) lotes.value[indice] = { ...lotes.value[indice], ...mapear_request_local(request) };
+        refrescar_operaciones_pendientes();
+        return lotes.value[indice] ?? crear_lote_local(id, request);
+      }
       const lote = await actualizar_lote(id, request);
 
       const indice = lotes.value.findIndex((item) => item.id === id);
@@ -155,6 +228,15 @@ export const useLotesStore = defineStore("lotes", () => {
 
       return lote;
     } catch (err) {
+      if (es_fallo_temporal(err)) {
+        const usuario_id = auth_store.usuario?.id;
+        if (!usuario_id) throw new Error("No se pudo identificar al administrador.");
+        encolar_actualizacion_lote(id, request, usuario_id);
+        const indice = lotes.value.findIndex((item) => item.id === id);
+        if (indice >= 0) lotes.value[indice] = { ...lotes.value[indice], ...mapear_request_local(request) };
+        refrescar_operaciones_pendientes();
+        return lotes.value[indice] ?? crear_lote_local(id, request);
+      }
       const mensaje = obtener_mensaje_error(
         err,
         "No se pudo actualizar el lote.",
@@ -236,7 +318,8 @@ export const useLotesStore = defineStore("lotes", () => {
       throw new Error("No se encontró el lote que querés modificar.");
     }
 
-    if (!usuario_id.trim()) {
+    usuario_id = String(usuario_id ?? "").trim();
+    if (!usuario_id) {
       throw new Error("No se pudo identificar al administrador.");
     }
 

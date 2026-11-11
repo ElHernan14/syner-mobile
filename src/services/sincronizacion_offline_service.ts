@@ -39,7 +39,6 @@ export function iniciar_sincronizacion_offline(pinia: Pinia): void {
 
       if (
         (await hay_conexion()) &&
-        lotes_store.lotes.length > 0 &&
         operaciones_despues < operaciones_antes
       ) {
         await lotes_store.cargar(lotes_store.page);

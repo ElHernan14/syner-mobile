@@ -80,6 +80,18 @@ html.syner-theme-dark {
   --ion-color-medium: #9ca3af;
   --ion-color-medium-rgb: 156, 163, 175;
   --ion-color-medium-contrast: #111827;
+  --ion-item-background: var(--syner-surface);
+}
+
+ion-popover {
+  --background: var(--syner-surface);
+  --color: var(--syner-text);
+}
+
+ion-popover ion-item {
+  --background: var(--syner-surface);
+  --color: var(--syner-text);
+  --border-color: var(--syner-border);
 }
 
 ion-card {

@@ -254,8 +254,9 @@
 
             <ion-select
               v-model="nuevo_estado_seleccionado"
-              interface="action-sheet"
+              interface="popover"
               :disabled="cambiando_estado"
+              class="syner-lotes__estado-select"
             >
               <ion-select-option
                 v-for="estado in obtener_transiciones(lote_estado_seleccionado)"
@@ -993,6 +994,12 @@ onMounted(() => {
 .syner-lotes__estado-modal-button {
   margin-top: 20px;
   font-weight: 700;
+}
+
+.syner-lotes__estado-select {
+  --color: var(--syner-text);
+  --placeholder-color: var(--syner-text-secondary);
+  color: var(--syner-text);
 }
 
 .syner-lotes__pendiente {

@@ -28,6 +28,7 @@ import {
   businessOutline,
   homeOutline,
   layersOutline,
+  notificationsOutline,
   peopleOutline,
   receiptOutline,
 } from "ionicons/icons";
@@ -42,6 +43,7 @@ const auth_store = useAuthStore();
 
 const iconos = {
   "home-outline": homeOutline,
+  "notifications-outline": notificationsOutline,
   "layers-outline": layersOutline,
   "receipt-outline": receiptOutline,
   "business-outline": businessOutline,
@@ -55,7 +57,7 @@ const tabs = computed(() => {
 const ruta_actual = computed(() => route.path);
 
 function obtener_icono(nombre: string) {
-  return iconos[nombre as keyof typeof iconos];
+  return iconos[nombre as keyof typeof iconos] ?? homeOutline;
 }
 
 function es_tab_activo(ruta: string) {
