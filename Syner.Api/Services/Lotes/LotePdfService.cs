@@ -104,7 +104,7 @@ public sealed class LotePdfService
                                 Fila(
                                     tabla,
                                     "Ahorro",
-                                    $"{lote.PorcentajeAhorro:0.##}%"
+                                    $"{Math.Round((lote.PrecioMercado - lote.PrecioCupo) / lote.PrecioMercado * 100m, 2, MidpointRounding.AwayFromZero):0.##}%"
                                 );
                                 Fila(
                                     tabla,

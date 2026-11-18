@@ -128,7 +128,7 @@ public sealed class PedidosController : ControllerBase
 
         var offset = paginacion.CalcularOffset();
 
-        var pedidos = await consulta
+        var pedidos_base = await consulta
             .Skip(offset)
             .Take(paginacion.Limit)
             .Select(pedido => new
@@ -150,14 +150,35 @@ public sealed class PedidosController : ControllerBase
                     id = pedido.Lote.Id,
                     nombre = pedido.Lote.Nombre,
                     categoria = pedido.Lote.Categoria,
-                    precio_cupo = (double)pedido.Lote.PrecioCupo,
-                    precio_mercado = (double)pedido.Lote.PrecioMercado,
-                    porcentaje_ahorro = (double)pedido.Lote.PorcentajeAhorro,
+                    precio_cupo = pedido.Lote.PrecioCupo,
+                    precio_mercado = pedido.Lote.PrecioMercado,
                     proveedor = pedido.Lote.Proveedor.Nombre,
                     proveedor_verificado = pedido.Lote.Proveedor.Verificado
                 }
             })
             .ToListAsync(cancellationToken);
+
+        var pedidos = pedidos_base.Select(pedido => new
+        {
+            pedido.id,
+            pedido.estado,
+            pedido.numero_seguimiento,
+            pedido.codigo_entrega,
+            pedido.usuario,
+            lote = new
+            {
+                pedido.lote.id,
+                pedido.lote.nombre,
+                pedido.lote.categoria,
+                precio_cupo = (double)pedido.lote.precio_cupo,
+                precio_mercado = (double)pedido.lote.precio_mercado,
+                porcentaje_ahorro = pedido.lote.precio_mercado > 0
+                    ? (double)Math.Round((pedido.lote.precio_mercado - pedido.lote.precio_cupo) / pedido.lote.precio_mercado * 100m, 2, MidpointRounding.AwayFromZero)
+                    : 0d,
+                pedido.lote.proveedor,
+                pedido.lote.proveedor_verificado
+            }
+        }).ToList();
 
         var resultado = new ResultadoPaginado<object>
         {

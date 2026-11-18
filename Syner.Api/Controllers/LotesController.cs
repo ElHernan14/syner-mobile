@@ -114,7 +114,7 @@ public sealed class LotesController : ControllerBase
         // Offset calculado por el servidor
         var offset = paginacion.CalcularOffset();
 
-        var lotes = await consulta
+        var lotes_base = await consulta
             .Skip(offset)
             .Take(paginacion.Limit)
             .Select(lote => new
@@ -123,9 +123,8 @@ public sealed class LotesController : ControllerBase
                 nombre = lote.Nombre,
                 descripcion = lote.Descripcion,
                 categoria = lote.Categoria,
-                precio_mercado = (double)lote.PrecioMercado,
-                precio_cupo = (double)lote.PrecioCupo,
-                porcentaje_ahorro = (double)lote.PorcentajeAhorro,
+                precio_mercado = lote.PrecioMercado,
+                precio_cupo = lote.PrecioCupo,
                 cantidad_cupos = lote.CantidadCupos,
                 cupos_ocupados = lote.CuposOcupados,
                 fecha_inicio = lote.FechaInicio,
@@ -140,6 +139,23 @@ public sealed class LotesController : ControllerBase
                 }
             })
             .ToListAsync(cancellationToken);
+
+        var lotes = lotes_base.Select(lote => new
+        {
+            lote.id,
+            lote.nombre,
+            lote.descripcion,
+            lote.categoria,
+            precio_mercado = (double)lote.precio_mercado,
+            precio_cupo = (double)lote.precio_cupo,
+            porcentaje_ahorro = (double)CalcularPorcentajeAhorro(lote.precio_mercado, lote.precio_cupo),
+            lote.cantidad_cupos,
+            lote.cupos_ocupados,
+            lote.fecha_inicio,
+            lote.fecha_fin,
+            lote.estado,
+            lote.proveedor
+        }).ToList();
 
         var resultado = new ResultadoPaginado<object>
         {
@@ -298,7 +314,29 @@ public sealed class LotesController : ControllerBase
         return RespuestaHttp.Ok(
             this,
             "Lote obtenido correctamente.",
-            lote
+            new
+            {
+                lote.Id,
+                lote.Nombre,
+                lote.Descripcion,
+                lote.Categoria,
+                lote.PrecioMercado,
+                lote.PrecioCupo,
+                PorcentajeAhorro = CalcularPorcentajeAhorro(lote.PrecioMercado, lote.PrecioCupo),
+                lote.CantidadCupos,
+                lote.CuposOcupados,
+                lote.FechaInicio,
+                lote.FechaFin,
+                lote.Estado,
+                lote.ProveedorId,
+                Proveedor = new
+                {
+                    lote.Proveedor.Id,
+                    lote.Proveedor.Nombre,
+                    lote.Proveedor.Descripcion,
+                    lote.Proveedor.Verificado
+                }
+            }
         );
     }
 
@@ -433,7 +471,7 @@ public sealed class LotesController : ControllerBase
             categoria = lote.Categoria,
             precio_mercado = (double)lote.PrecioMercado,
             precio_cupo = (double)lote.PrecioCupo,
-            porcentaje_ahorro = (double)lote.PorcentajeAhorro,
+                porcentaje_ahorro = (double)CalcularPorcentajeAhorro(lote.PrecioMercado, lote.PrecioCupo),
             cantidad_cupos = lote.CantidadCupos,
             cupos_ocupados = lote.CuposOcupados,
             fecha_inicio = lote.FechaInicio,
