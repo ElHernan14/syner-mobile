@@ -4,7 +4,6 @@ export interface ActualizarLoteRequest {
   categoria: string;
   precioMercado: number;
   precioCupo: number;
-  porcentajeAhorro: number;
   cantidadCupos: number;
   fechaInicio: string;
   fechaFin: string;

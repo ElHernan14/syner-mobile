@@ -1,6 +1,9 @@
 <template>
   <comp-page
     titulo="Detalle del lote"
+    :mostrar_menu="false"
+    :mostrar_volver="true"
+    ruta_volver="/app/lotes"
     :mostrar_refresher="true"
     @actualizar="cargar_lote"
   >
@@ -83,6 +86,7 @@
           <p>
             {{ lote.proveedor.nombre }}
           </p>
+          <comp-estado-badge :estado="lote.proveedor.verificado ? 'verificado' : 'sin verificar'" />
         </div>
 
         <div class="syner-lote-detalle__card">
@@ -248,6 +252,8 @@ onMounted(() => {
   margin: 0;
   color: var(--syner-text-secondary);
 }
+
+.syner-lote-detalle__card :deep(.syner-estado-badge) { margin-top: 12px; }
 
 .syner-lote-detalle__descripcion {
   line-height: 1.6;

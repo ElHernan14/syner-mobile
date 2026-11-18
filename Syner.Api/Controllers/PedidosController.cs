@@ -54,6 +54,19 @@ public sealed class PedidosController : ControllerBase
             .AsNoTracking()
             .AsQueryable();
 
+        // Un usuario solo puede consultar sus propios pedidos. El filtro de
+        // pedidoId nunca debe permitir atravesar esta restricción.
+        if (!User.IsInRole("admin"))
+        {
+            var usuario_id = ObtenerUsuarioId();
+            if (usuario_id is null)
+            {
+                return Unauthorized();
+            }
+
+            consulta = consulta.Where(pedido => pedido.UsuarioId == usuario_id.Value);
+        }
+
         if (pedidoId.HasValue)
         {
             if (pedidoId.Value <= 0)
@@ -107,7 +120,7 @@ public sealed class PedidosController : ControllerBase
             "lote_desc" => consulta.OrderByDescending(
                 pedido => pedido.Lote.Nombre),
 
-            _ => consulta.OrderBy(
+            _ => consulta.OrderByDescending(
                 pedido => pedido.Id)
         };
 
@@ -137,7 +150,11 @@ public sealed class PedidosController : ControllerBase
                     id = pedido.Lote.Id,
                     nombre = pedido.Lote.Nombre,
                     categoria = pedido.Lote.Categoria,
-                    precio_cupo = (double)pedido.Lote.PrecioCupo
+                    precio_cupo = (double)pedido.Lote.PrecioCupo,
+                    precio_mercado = (double)pedido.Lote.PrecioMercado,
+                    porcentaje_ahorro = (double)pedido.Lote.PorcentajeAhorro,
+                    proveedor = pedido.Lote.Proveedor.Nombre,
+                    proveedor_verificado = pedido.Lote.Proveedor.Verificado
                 }
             })
             .ToListAsync(cancellationToken);

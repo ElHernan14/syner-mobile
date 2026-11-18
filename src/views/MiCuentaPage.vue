@@ -73,6 +73,16 @@
         >
           {{ probando ? "Probando..." : "PROBAR CONEXIÓN" }}
         </ion-button>
+        <div
+          v-if="resultado"
+          class="syner-mi-cuenta__resultado"
+          :class="{
+            'syner-mi-cuenta__resultado--ok': resultado.estado === 'ok',
+            'syner-mi-cuenta__resultado--error': resultado.estado === 'error',
+          }"
+        >
+          {{ resultado.mensaje }}
+        </div>
       </div>
 
       <ion-list :inset="true" class="syner-mi-cuenta__seguridad">
@@ -177,17 +187,6 @@
         {{ mensaje_vibracion.mensaje }}
       </div>
 
-      <div
-        v-if="resultado"
-        class="syner-mi-cuenta__resultado"
-        :class="{
-          'syner-mi-cuenta__resultado--ok': resultado.estado === 'ok',
-
-          'syner-mi-cuenta__resultado--error': resultado.estado === 'error',
-        }"
-      >
-        {{ resultado.mensaje }}
-      </div>
     </div>
   </comp-page>
 </template>
@@ -230,6 +229,7 @@ import { useAuthStore } from "@/stores/auth_store";
 import { usePreferenciasStore } from "@/stores/preferencias_store";
 
 import { actualizar_avatar } from "@/services/usuarios_service";
+import { cargar_url_foto_local, guardar_foto_local, url_avatar_servidor } from "@/services/perfil_foto_service";
 
 interface HealthResponse {
   estado: string;
@@ -370,14 +370,14 @@ async function probar_conexion() {
 
     resultado.value = {
       estado: "error",
-      mensaje: "No se pudo establecer conexión con la API.",
+      mensaje: "No pudimos conectarnos ahora. Revisá la conexión a internet e intentá de nuevo.",
     };
   } finally {
     probando.value = false;
   }
 }
 
-const foto_perfil = ref<string | null>(auth_store.usuario?.avatar ?? null);
+const foto_perfil = ref<string | null>(null);
 const procesando_foto = ref(false);
 
 const mensaje_foto = ref<{
@@ -388,7 +388,11 @@ const mensaje_foto = ref<{
 async function guardar_foto_perfil(web_path: string) {
   try {
     const respuesta = await fetch(web_path);
+    if (!respuesta.ok) throw new Error("No se pudo leer la foto seleccionada.");
     const blob = await respuesta.blob();
+    const usuario_id = auth_store.usuario?.id;
+    if (!usuario_id) throw new Error("Iniciá sesión nuevamente para guardar la foto.");
+    foto_perfil.value = await guardar_foto_local(blob, usuario_id);
 
     const extension =
       blob.type === "image/png"
@@ -421,11 +425,11 @@ async function guardar_foto_perfil(web_path: string) {
     };
   } catch (err) {
     console.error("Error al guardar foto de perfil:", err);
-
-    mensaje_foto.value = {
-      estado: "error",
-      mensaje: "No se pudo guardar la foto de perfil.",
-    };
+    if (foto_perfil.value) {
+      mensaje_foto.value = { estado: "ok", mensaje: "La foto quedó guardada en este dispositivo. Para verla en otros dispositivos, conectate y volvé a guardarla." };
+    } else {
+      mensaje_foto.value = { estado: "error", mensaje: "No se pudo guardar la foto seleccionada." };
+    }
   }
 }
 
@@ -475,6 +479,18 @@ async function elegir_foto_perfil() {
 
 onMounted(async () => {
   await cargar_disponibilidad_biometria();
+  const id = auth_store.usuario?.id;
+  foto_perfil.value = await cargar_url_foto_local(id);
+  if (!foto_perfil.value && auth_store.usuario?.avatar) {
+    foto_perfil.value = url_avatar_servidor(auth_store.usuario.avatar);
+    const url = foto_perfil.value;
+    if (url) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) foto_perfil.value = await guardar_foto_local(await response.blob(), id!);
+      } catch { /* La URL remota sigue disponible cuando vuelva la conexión. */ }
+    }
+  }
 });
 </script>
 
@@ -503,8 +519,14 @@ onMounted(async () => {
 }
 
 .syner-mi-cuenta__accion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 24px;
 }
+.syner-mi-cuenta__accion ion-button { flex: 0 0 auto; }
+.syner-mi-cuenta__accion .syner-mi-cuenta__resultado { flex: 1 1 240px; margin: 0; text-align: left; }
 
 .syner-mi-cuenta__seguridad {
   margin-top: 24px;
@@ -574,5 +596,11 @@ onMounted(async () => {
   justify-content: center;
   gap: 12px;
   padding: 0 16px 20px;
+}
+
+@media (max-width: 600px) {
+  .syner-mi-cuenta__accion { align-items: stretch; flex-direction: column; }
+  .syner-mi-cuenta__accion ion-button { width: 100%; }
+  .syner-mi-cuenta__accion .syner-mi-cuenta__resultado { text-align: center; }
 }
 </style>

@@ -62,20 +62,20 @@
         <div v-for="lote in lotes" :key="lote.id" class="syner-lotes__item">
           <comp-lote-card
             :lote="lote"
+            :puede-gestionar="es_admin"
             @editar="editar_lote"
             @eliminar="eliminar_lote_confirmar"
-          />
-
-          <div
-            v-if="operaciones_pendientes.some((op) => op.loteId === lote.id)"
-            class="syner-lotes__pendiente"
           >
-            <ion-badge color="warning">Sin enviar</ion-badge>
-            <span>El cambio se enviará cuando vuelva la conexión.</span>
-          </div>
+            <template #extras>
+              <div
+                v-if="operaciones_pendientes.some((op) => op.loteId === lote.id)"
+                class="syner-lotes__pendiente"
+              >
+                <ion-badge color="warning">Sin enviar</ion-badge>
+                <span>Se sincronizará cuando vuelva la conexión.</span>
+              </div>
 
-          <!-- Acciones administrativas -->
-          <div v-if="es_admin" class="syner-lotes__acciones">
+          <div v-if="es_admin && lote.id > 0" class="syner-lotes__acciones">
             <ion-button
               fill="outline"
               size="small"
@@ -137,10 +137,10 @@
           </div>
 
           <!-- Acción del usuario -->
-          <div v-if="es_usuario" class="syner-lotes__usuario-acciones">
+          <div v-if="es_usuario && !tiene_pedido_activo(lote.id)" class="syner-lotes__usuario-acciones">
             <ion-button
               expand="block"
-              :disabled="lote.estado !== 'fondeando'"
+              :disabled="lote.estado !== 'fondeando' || pedidos_store.cargando.value"
               @click="adquirir_cupo(lote)"
             >
               <ion-icon :icon="ticket_outline" slot="start" />
@@ -152,6 +152,8 @@
               }}
             </ion-button>
           </div>
+            </template>
+          </comp-lote-card>
         </div>
       </div>
 
@@ -381,6 +383,7 @@ import { obtener_pdf_lote, obtener_qr_lote } from "@/services/lotes_service";
 import { abrir_pdf, compartir_pdf } from "@/services/archivo_service";
 
 import { adquirir_cupo as adquirir_cupo_api } from "@/services/pedidos_service";
+import { usePedidos } from "@/composables/usePedidos";
 
 import type { EstadoLote, Lote } from "@/models/LoteModel";
 import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
@@ -395,6 +398,11 @@ const es_admin = computed(() => {
 const es_usuario = computed(() => {
   return auth_store.rol === "usuario";
 });
+
+const pedidos_store = usePedidos();
+function tiene_pedido_activo(lote_id: number): boolean {
+  return pedidos_store.pedidos.value.some((pedido) => Number(pedido.lote.id) === lote_id && pedido.estado.toLowerCase() !== "cancelado");
+}
 
 const transiciones_estado: Record<EstadoLote, EstadoLote[]> = {
   borrador: ["fondeando", "cancelado"],
@@ -633,16 +641,15 @@ async function guardar_lote(request: CrearLoteRequest | ActualizarLoteRequest) {
 
   try {
     if (es_edicion) {
-      await actualizar_lote(
+      const lote_actualizado = await actualizar_lote(
         lote_seleccionado.value!.id,
         request as ActualizarLoteRequest,
       );
-
-      mostrar_toast_exito("El lote se actualizó correctamente.");
+      const pendiente = operaciones_pendientes.value.some((op) => op.loteId === lote_actualizado.id);
+      mostrar_toast_exito(pendiente ? "La edición quedó guardada en este dispositivo y se enviará cuando vuelva la conexión." : "El lote se actualizó correctamente.");
     } else {
-      await crear_lote(request as CrearLoteRequest);
-
-      mostrar_toast_exito("El lote se creó correctamente.");
+      const lote_creado = await crear_lote(request as CrearLoteRequest);
+      mostrar_toast_exito(lote_creado.id < 0 ? "El lote quedó guardado en este dispositivo y se creará cuando vuelva la conexión." : "El lote se creó correctamente.");
     }
 
     cerrar_formulario();
@@ -723,11 +730,11 @@ async function confirmar_baja() {
   const id = lote_para_eliminar.value.id;
 
   try {
-    await eliminar_lote(id);
+    const pendiente = await eliminar_lote(id);
 
     cerrar_confirmacion_baja();
 
-    mostrar_toast_exito("El lote se dio de baja correctamente.");
+    mostrar_toast_exito(pendiente ? "La baja quedó en cola y se enviará cuando vuelva la conexión." : "El lote se dio de baja correctamente.");
 
     await cargar_lotes(page.value, termino.value);
   } catch (err) {
@@ -809,6 +816,8 @@ async function compartir_pdf_lote(id: number) {
 
     await compartir_pdf(blob, `syner-lote-${id}.pdf`);
   } catch (error) {
+    const mensaje_error = error instanceof Error ? error.message.toLowerCase() : "";
+    if (mensaje_error.includes("cancel") || mensaje_error.includes("share cancelled") || mensaje_error.includes("user did not share")) return;
     const mensaje =
       error instanceof Error ? error.message : "No se pudo compartir el PDF.";
 
@@ -834,6 +843,7 @@ async function adquirir_cupo(lote: Lote) {
       `¡Cupo adquirido! Te asignamos un pedido para "${lote.nombre}".`,
     );
 
+    await pedidos_store.cargar_pedidos();
     await cargar_lotes(page.value, termino.value);
   } catch (error) {
     const mensaje =
@@ -845,6 +855,7 @@ async function adquirir_cupo(lote: Lote) {
 
 onMounted(() => {
   cargar_lotes();
+  if (es_usuario.value) pedidos_store.cargar_pedidos();
 });
 </script>
 
@@ -912,11 +923,11 @@ onMounted(() => {
 
 .syner-lotes__acciones {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: -8px;
-  padding: 0 4px;
+  margin-top: 0;
+  padding: 0;
 }
 
 .syner-lotes__acciones ion-button {
@@ -1007,9 +1018,13 @@ onMounted(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
-  padding: 0 4px;
+  margin-top: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ion-color-warning) 13%, transparent);
 }
+
+.syner-lotes__acciones ion-button { --border-radius: 14px; --border-width: 1px; --box-shadow: 0 3px 10px color-mix(in srgb, var(--syner-primary) 12%, transparent); font-weight: 650; }
 
 .syner-lotes__pendiente span {
   color: var(--syner-text-secondary);

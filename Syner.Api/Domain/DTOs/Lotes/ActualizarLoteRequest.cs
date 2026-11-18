@@ -23,9 +23,6 @@ public sealed class ActualizarLoteRequest : IValidable
     [Range(0.01, double.MaxValue, ErrorMessage = "El precio de cupo debe ser mayor a 0.")]
     public decimal PrecioCupo { get; set; }
 
-    [Range(0, 100, ErrorMessage = "El porcentaje de ahorro debe estar entre 0 y 100.")]
-    public decimal PorcentajeAhorro { get; set; }
-
     [Range(1, int.MaxValue, ErrorMessage = "La cantidad de cupos debe ser al menos 1.")]
     public int CantidadCupos { get; set; }
 

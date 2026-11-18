@@ -5,7 +5,7 @@ import { usePedidosStore } from "@/stores/pedidos_store";
 export function usePedidos() {
   const pedidos_store = usePedidosStore();
 
-  const { pedidos, cargando, error, hay_pedidos } = storeToRefs(pedidos_store);
+  const { pedidos, cargando, error, hay_pedidos, usando_cache } = storeToRefs(pedidos_store);
 
   function cargar_pedidos(pedido_id?: number) {
     return pedidos_store.cargar(1, pedido_id);
@@ -16,6 +16,7 @@ export function usePedidos() {
     cargando,
     error,
     hay_pedidos,
+    usando_cache,
     cargar_pedidos,
   };
 }

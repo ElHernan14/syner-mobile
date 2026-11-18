@@ -60,6 +60,12 @@ public sealed class LotesController : ControllerBase
             .AsNoTracking()
             .AsQueryable();
 
+        if (!User.IsInRole("admin"))
+        {
+            var hoy = ObtenerFechaArgentina();
+            consulta = consulta.Where(lote => lote.FechaFin.Date >= hoy);
+        }
+
         // Filtro por término
         if (!string.IsNullOrWhiteSpace(paginacion.Termino))
         {
@@ -99,7 +105,7 @@ public sealed class LotesController : ControllerBase
                 consulta.OrderByDescending(lote => lote.Estado),
 
             _ =>
-                consulta.OrderBy(lote => lote.Id)
+                consulta.OrderByDescending(lote => lote.Id)
         };
 
         // Total antes de Skip/Take
@@ -221,7 +227,7 @@ public sealed class LotesController : ControllerBase
             Categoria = request.Categoria,
             PrecioMercado = request.PrecioMercado,
             PrecioCupo = request.PrecioCupo,
-            PorcentajeAhorro = request.PorcentajeAhorro,
+            PorcentajeAhorro = CalcularPorcentajeAhorro(request.PrecioMercado, request.PrecioCupo),
             CantidadCupos = request.CantidadCupos,
             CuposOcupados = 0,
             FechaInicio = request.FechaInicio,
@@ -239,7 +245,25 @@ public sealed class LotesController : ControllerBase
         return RespuestaHttp.Created(
             this,
             "Lote creado correctamente.",
-            lote,
+            new
+            {
+                id = lote.Id,
+                nombre = lote.Nombre,
+                descripcion = lote.Descripcion,
+                categoria = lote.Categoria,
+                precio_mercado = (double)lote.PrecioMercado,
+                precio_cupo = (double)lote.PrecioCupo,
+                porcentaje_ahorro = (double)lote.PorcentajeAhorro,
+                cantidad_cupos = lote.CantidadCupos,
+                cupos_ocupados = lote.CuposOcupados,
+                fecha_inicio = lote.FechaInicio,
+                fecha_fin = lote.FechaFin,
+                estado = lote.Estado,
+                proveedor_id = lote.ProveedorId,
+                proveedor = _db.Proveedores.AsNoTracking().Where(p => p.Id == lote.ProveedorId)
+                    .Select(p => new { id = p.Id, nombre = p.Nombre, descripcion = p.Descripcion, verificado = p.Verificado })
+                    .FirstOrDefault()
+            },
             nameof(ObtenerPorId),
             new { id = lote.Id }
         );
@@ -264,6 +288,11 @@ public sealed class LotesController : ControllerBase
                 this,
                 "El lote no existe."
             );
+        }
+
+        if (!User.IsInRole("admin") && lote.FechaFin.Date < ObtenerFechaArgentina())
+        {
+            return RespuestaHttp.NotFound<object>(this, "El lote no está disponible.");
         }
 
         return RespuestaHttp.Ok(
@@ -388,7 +417,7 @@ public sealed class LotesController : ControllerBase
         lote.Categoria = request.Categoria;
         lote.PrecioMercado = request.PrecioMercado;
         lote.PrecioCupo = request.PrecioCupo;
-        lote.PorcentajeAhorro = request.PorcentajeAhorro;
+        lote.PorcentajeAhorro = CalcularPorcentajeAhorro(request.PrecioMercado, request.PrecioCupo);
         lote.CantidadCupos = request.CantidadCupos;
         lote.FechaInicio = request.FechaInicio;
         lote.FechaFin = request.FechaFin;
@@ -418,6 +447,23 @@ public sealed class LotesController : ControllerBase
             "Lote actualizado correctamente.",
             resultado
         );
+    }
+
+    private static decimal CalcularPorcentajeAhorro(decimal precioMercado, decimal precioCupo)
+    {
+        return Math.Round((precioMercado - precioCupo) / precioMercado * 100m, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static DateTime ObtenerFechaArgentina()
+    {
+        try
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Argentina Standard Time")).Date;
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires")).Date;
+        }
     }
 
     [HttpDelete("{id:int}")]

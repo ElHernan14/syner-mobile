@@ -19,6 +19,10 @@ interface PedidoApi {
     nombre: string;
     categoria: string;
     precio_cupo: number;
+    precio_mercado: number;
+    porcentaje_ahorro: number;
+    proveedor: string;
+    proveedor_verificado: boolean;
   };
 }
 
@@ -70,6 +74,10 @@ export async function obtener_pedidos(
         nombre: pedido.lote.nombre,
         categoria: pedido.lote.categoria,
         precioCupo: pedido.lote.precio_cupo,
+        precioMercado: pedido.lote.precio_mercado,
+        porcentajeAhorro: pedido.lote.porcentaje_ahorro,
+        proveedor: pedido.lote.proveedor,
+        proveedorVerificado: pedido.lote.proveedor_verificado,
       },
     })),
     page: respuesta.datos.page,

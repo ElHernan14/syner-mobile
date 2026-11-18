@@ -119,26 +119,9 @@
             </span>
           </div>
 
-          <div class="syner-lote-formulario__field">
-            <ion-input
-              v-model="formulario.porcentajeAhorro"
-              label="Porcentaje de ahorro"
-              label-placement="stacked"
-              fill="outline"
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              required
-              @ion-input="limpiar_error_campo('porcentajeAhorro')"
-            />
-
-            <span
-              v-if="errores.porcentajeAhorro"
-              class="syner-lote-formulario__field-error"
-            >
-              {{ errores.porcentajeAhorro }}
-            </span>
+          <div class="syner-lote-formulario__ahorro" aria-live="polite">
+            <span>Ahorro calculado automáticamente</span>
+            <strong>{{ porcentaje_ahorro_calculado }}%</strong>
           </div>
 
           <div class="syner-lote-formulario__field">
@@ -278,7 +261,6 @@ type CampoFormulario =
   | "categoria"
   | "precioMercado"
   | "precioCupo"
-  | "porcentajeAhorro"
   | "cantidadCupos"
   | "fechaInicio"
   | "fechaFin"
@@ -312,7 +294,6 @@ const formulario = reactive({
   categoria: "",
   precioMercado: "",
   precioCupo: "",
-  porcentajeAhorro: "",
   cantidadCupos: "",
   fechaInicio: "",
   fechaFin: "",
@@ -322,6 +303,12 @@ const formulario = reactive({
 const errores = reactive<ErroresFormulario>({});
 
 const modo_edicion = computed(() => props.lote !== null);
+const porcentaje_ahorro_calculado = computed(() => {
+  const mercado = Number(formulario.precioMercado);
+  const cupo = Number(formulario.precioCupo);
+  if (!Number.isFinite(mercado) || !Number.isFinite(cupo) || mercado <= 0 || cupo < 0 || cupo >= mercado) return "—";
+  return (((mercado - cupo) / mercado) * 100).toFixed(2);
+});
 
 function limpiar_formulario() {
   formulario.nombre = "";
@@ -329,7 +316,6 @@ function limpiar_formulario() {
   formulario.categoria = "";
   formulario.precioMercado = "";
   formulario.precioCupo = "";
-  formulario.porcentajeAhorro = "";
   formulario.cantidadCupos = "";
   formulario.fechaInicio = "";
   formulario.fechaFin = "";
@@ -349,7 +335,6 @@ function cargar_lote() {
   formulario.categoria = props.lote.categoria;
   formulario.precioMercado = String(props.lote.precioMercado);
   formulario.precioCupo = String(props.lote.precioCupo);
-  formulario.porcentajeAhorro = String(props.lote.porcentajeAhorro);
   formulario.cantidadCupos = String(props.lote.cantidadCupos);
   formulario.fechaInicio = props.lote.fechaInicio.slice(0, 10);
   formulario.fechaFin = props.lote.fechaFin.slice(0, 10);
@@ -399,7 +384,6 @@ function validar(): boolean {
 
   const precio_mercado = obtener_numero(formulario.precioMercado);
   const precio_cupo = obtener_numero(formulario.precioCupo);
-  const porcentaje_ahorro = obtener_numero(formulario.porcentajeAhorro);
   const cantidad_cupos = obtener_numero(formulario.cantidadCupos);
   const proveedor_id = obtener_numero(formulario.proveedorId);
 
@@ -435,14 +419,6 @@ function validar(): boolean {
     errores.precioCupo =
       "El precio de cupo debe ser menor al precio de mercado.";
   }
-
-  if (porcentaje_ahorro === null) {
-    errores.porcentajeAhorro = "Ingresá un porcentaje de ahorro válido.";
-  } else if (porcentaje_ahorro < 0 || porcentaje_ahorro > 100) {
-    errores.porcentajeAhorro =
-      "El porcentaje de ahorro debe estar entre 0 y 100.";
-  }
-
   if (cantidad_cupos === null) {
     errores.cantidadCupos = "Ingresá una cantidad de cupos.";
   } else if (!Number.isInteger(cantidad_cupos) || cantidad_cupos <= 0) {
@@ -489,14 +465,12 @@ function guardar() {
 
   const precio_mercado = obtener_numero(formulario.precioMercado);
   const precio_cupo = obtener_numero(formulario.precioCupo);
-  const porcentaje_ahorro = obtener_numero(formulario.porcentajeAhorro);
   const cantidad_cupos = obtener_numero(formulario.cantidadCupos);
   const proveedor_id = obtener_numero(formulario.proveedorId);
 
   if (
     precio_mercado === null ||
     precio_cupo === null ||
-    porcentaje_ahorro === null ||
     cantidad_cupos === null ||
     proveedor_id === null
   ) {
@@ -509,7 +483,6 @@ function guardar() {
     categoria: formulario.categoria.trim(),
     precioMercado: precio_mercado,
     precioCupo: precio_cupo,
-    porcentajeAhorro: porcentaje_ahorro,
     cantidadCupos: cantidad_cupos,
     fechaInicio: formulario.fechaInicio,
     fechaFin: formulario.fechaFin,
@@ -561,6 +534,20 @@ function cancelar() {
   color: var(--syner-text-secondary);
   font-size: 13px;
 }
+
+.syner-lote-formulario__ahorro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: end;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--syner-success) 10%, transparent);
+  color: var(--syner-success);
+}
+
+.syner-lote-formulario__ahorro strong { font-size: 18px; }
 
 .syner-lote-formulario__grid {
   display: grid;

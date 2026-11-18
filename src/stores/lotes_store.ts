@@ -19,11 +19,13 @@ import {
   guardar_cache_lotes,
   obtener_cache_lotes,
 } from "@/services/lotes_cache_service";
-import { ApiError } from "@/services/ajax_service";
+import { ApiError, es_error_conexion } from "@/services/ajax_service";
 import {
   encolar_cambio_estado_lote,
   encolar_creacion_lote,
   encolar_actualizacion_lote,
+  encolar_eliminacion_lote,
+  quitar_lote_de_cola,
   obtener_operaciones_pendientes,
   type OperacionPendienteLote,
 } from "@/services/cola_offline_lotes_service";
@@ -65,6 +67,8 @@ export const useLotesStore = defineStore("lotes", () => {
         if (indice < 0) resultado.push(crear_lote_local(operacion.loteId, operacion.request));
       } else if (operacion.tipo === "actualizar") {
         if (indice >= 0) resultado[indice] = { ...resultado[indice], ...mapear_request_local(operacion.request) };
+      } else if (operacion.tipo === "eliminar") {
+        if (indice >= 0) resultado.splice(indice, 1);
       } else if (indice >= 0) {
         resultado[indice] = { ...resultado[indice], estado: operacion.estado };
       }
@@ -80,7 +84,7 @@ export const useLotesStore = defineStore("lotes", () => {
       categoria: request.categoria,
       precioMercado: request.precioMercado,
       precioCupo: request.precioCupo,
-      porcentajeAhorro: request.porcentajeAhorro,
+      porcentajeAhorro: request.precioMercado > 0 ? Math.round(((request.precioMercado - request.precioCupo) / request.precioMercado) * 10000) / 100 : 0,
       cantidadCupos: request.cantidadCupos,
       fechaInicio: request.fechaInicio,
       fechaFin: request.fechaFin,
@@ -250,11 +254,22 @@ export const useLotesStore = defineStore("lotes", () => {
     }
   }
 
-  async function eliminar(id: number) {
+  async function eliminar(id: number): Promise<boolean> {
     procesando.value = true;
     error.value = null;
 
     try {
+      const usuario_id = auth_store.usuario?.id;
+      if (!(await hay_conexion())) {
+        if (!usuario_id) throw new Error("No se pudo identificar al administrador.");
+        if (id < 0) quitar_lote_de_cola(id, usuario_id);
+        else encolar_eliminacion_lote(id, usuario_id);
+        lotes.value = lotes.value.filter((item) => item.id !== id);
+        refrescar_operaciones_pendientes();
+        total.value = Math.max(0, total.value - 1);
+        hay_lotes.value = lotes.value.length > 0;
+        return true;
+      }
       await eliminar_lote(id);
 
       const indice = lotes.value.findIndex((item) => item.id === id);
@@ -262,7 +277,19 @@ export const useLotesStore = defineStore("lotes", () => {
       if (indice !== -1) {
         lotes.value[indice].estado = "cancelado";
       }
+      return false;
     } catch (err) {
+      if (es_fallo_temporal(err)) {
+        const usuario_id = auth_store.usuario?.id;
+        if (!usuario_id) throw new Error("No se pudo identificar al administrador.");
+        if (id < 0) quitar_lote_de_cola(id, usuario_id);
+        else encolar_eliminacion_lote(id, usuario_id);
+        lotes.value = lotes.value.filter((item) => item.id !== id);
+        refrescar_operaciones_pendientes();
+        total.value = Math.max(0, total.value - 1);
+        hay_lotes.value = lotes.value.length > 0;
+        return true;
+      }
       const mensaje = obtener_mensaje_error(
         err,
         "No se pudo dar de baja el lote.",
@@ -295,7 +322,7 @@ export const useLotesStore = defineStore("lotes", () => {
   function es_fallo_temporal(error: unknown): boolean {
     if (
       error instanceof Error &&
-      error.message === "No se pudo establecer conexión con la API."
+      (es_error_conexion(error) || error.message === "Ocurrió un error interno en el servidor. Intentá nuevamente.")
     ) {
       return true;
     }

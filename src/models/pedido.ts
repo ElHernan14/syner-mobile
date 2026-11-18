@@ -23,6 +23,10 @@ export interface Pedido {
     nombre: string;
     categoria: string;
     precioCupo: number;
+    precioMercado: number;
+    porcentajeAhorro: number;
+    proveedor?: string;
+    proveedorVerificado?: boolean;
   };
 }
 

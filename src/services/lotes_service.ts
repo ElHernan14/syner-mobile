@@ -209,14 +209,6 @@ function validarRequestLote(
 
   validarNumeroPositivo(request.precioCupo, "precio de cupo");
 
-  if (
-    !Number.isFinite(request.porcentajeAhorro) ||
-    request.porcentajeAhorro < 0 ||
-    request.porcentajeAhorro > 100
-  ) {
-    throw new Error("El porcentaje de ahorro debe estar entre 0 y 100.");
-  }
-
   if (!Number.isInteger(request.cantidadCupos) || request.cantidadCupos <= 0) {
     throw new Error(
       "La cantidad de cupos debe ser un número entero mayor a 0.",

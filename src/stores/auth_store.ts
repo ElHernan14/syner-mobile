@@ -7,6 +7,7 @@ import type { LoginRequest } from "@/models/auth";
 import type { Usuario } from "@/models/usuario";
 
 import { iniciar_sesion, refrescar_sesion } from "@/services/auth_service";
+import { es_error_conexion } from "@/services/ajax_service";
 
 import {
   biometria_disponible,
@@ -17,6 +18,7 @@ import {
 } from "@/services/biometria_service";
 
 const STORAGE_KEY = "syner_auth_session";
+const BIOMETRIC_PROFILE_KEY = "syner_biometric_profile";
 
 interface SesionPersistida {
   accessToken: string;
@@ -61,6 +63,7 @@ function guardar_sesion(
 ) {
   if (usar_biometria) {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.setItem(BIOMETRIC_PROFILE_KEY, JSON.stringify(usuario));
     return;
   }
 
@@ -101,7 +104,7 @@ function obtener_status_error(error: unknown): number | null {
 function es_error_transitorio(error: unknown): boolean {
   if (
     error instanceof Error &&
-    error.message === "No se pudo establecer conexión con la API."
+    es_error_conexion(error)
   ) {
     return true;
   }
@@ -144,9 +147,10 @@ export const useAuthStore = defineStore("auth", () => {
   const error = ref<string | null>(null);
 
   const biometria_activa = ref(false);
+  const sesion_offline = ref(false);
 
   const autenticado = computed(() => {
-    return access_token.value !== null && usuario.value !== null;
+    return usuario.value !== null && (access_token.value !== null || sesion_offline.value);
   });
 
   const rol = computed(() => {
@@ -179,6 +183,7 @@ export const useAuthStore = defineStore("auth", () => {
       const datos = respuesta.datos;
 
       access_token.value = datos.accessToken;
+      sesion_offline.value = false;
       refresh_token.value = datos.refreshToken;
       const usuario_normalizado = {
         ...datos.usuario,
@@ -232,6 +237,7 @@ export const useAuthStore = defineStore("auth", () => {
       const datos = respuesta.datos;
 
       access_token.value = datos.accessToken;
+      sesion_offline.value = false;
       refresh_token.value = datos.refreshToken;
       const usuario_normalizado = {
         ...datos.usuario,
@@ -263,6 +269,7 @@ export const useAuthStore = defineStore("auth", () => {
       access_token.value = null;
       refresh_token.value = null;
       usuario.value = null;
+      sesion_offline.value = false;
 
       eliminar_sesion_persistida();
 
@@ -284,6 +291,8 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       await guardar_refresh_token_biometria(refresh_token.value);
 
+      if (usuario.value) localStorage.setItem(BIOMETRIC_PROFILE_KEY, JSON.stringify(usuario.value));
+
       biometria_activa.value = true;
 
       // El refresh token deja de estar en localStorage.
@@ -299,6 +308,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   async function desactivar_biometria(): Promise<void> {
     await eliminar_sesion_biometrica();
+    localStorage.removeItem(BIOMETRIC_PROFILE_KEY);
 
     biometria_activa.value = false;
 
@@ -342,12 +352,29 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (err) {
       console.error("No se pudo recuperar la sesión mediante biometría:", err);
 
+      if (es_error_conexion(err)) {
+        try {
+          const perfil = JSON.parse(localStorage.getItem(BIOMETRIC_PROFILE_KEY) ?? "null") as Usuario | null;
+          if (perfil) {
+            usuario.value = { ...perfil, id: String(perfil.id) };
+            access_token.value = null;
+            refresh_token.value = refresh_token_biometrico;
+            biometria_activa.value = true;
+            sesion_offline.value = true;
+            return true;
+          }
+        } catch { /* Se continúa a la pantalla de ingreso si el perfil local no es válido. */ }
+      }
+
       access_token.value = null;
       refresh_token.value = null;
       usuario.value = null;
       biometria_activa.value = false;
+      sesion_offline.value = false;
 
       eliminar_sesion_persistida();
+      await eliminar_sesion_biometrica();
+      localStorage.removeItem(BIOMETRIC_PROFILE_KEY);
 
       return false;
     }
@@ -365,11 +392,13 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     await eliminar_sesion_biometrica();
+    localStorage.removeItem(BIOMETRIC_PROFILE_KEY);
 
     access_token.value = null;
     refresh_token.value = null;
     usuario.value = null;
     biometria_activa.value = false;
+    sesion_offline.value = false;
 
     eliminar_sesion_persistida();
   }
@@ -385,6 +414,7 @@ export const useAuthStore = defineStore("auth", () => {
     es_admin,
     es_usuario,
     biometria_activa,
+    sesion_offline,
     iniciar_sesion: iniciar_sesion_store,
     refrescar_sesion: refrescar_sesion_store,
     cerrar_sesion,

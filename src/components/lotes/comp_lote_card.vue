@@ -77,6 +77,10 @@
           </ion-button>
         </div>
       </div>
+
+      <div v-if="$slots.extras" class="syner-lote-card__extras">
+        <slot name="extras" />
+      </div>
     </ion-card-content>
   </ion-card>
 </template>
@@ -99,6 +103,7 @@ import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 
 const props = defineProps<{
   lote: Lote;
+  puedeGestionar?: boolean;
 }>();
 
 defineEmits<{
@@ -119,11 +124,11 @@ const fecha_fin = computed(() => {
 });
 
 const puede_editar = computed(() => {
-  return props.lote.estado === "borrador";
+  return props.puedeGestionar === true && props.lote.estado === "borrador";
 });
 
 const puede_eliminar = computed(() => {
-  return [
+  return props.puedeGestionar === true && [
     "borrador",
     "fondeando",
     "completado",
@@ -259,6 +264,15 @@ const puede_eliminar = computed(() => {
   display: flex;
   align-items: center;
   gap: 2px;
+}
+
+.syner-lote-card :deep(ion-button) { --border-radius: 12px; font-weight: 650; }
+.syner-lote-card :deep(.syner-lote-card__extras) {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--syner-border);
 }
 
 @media (max-width: 576px) {

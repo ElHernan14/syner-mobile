@@ -1,12 +1,13 @@
 import type { EstadoLote } from "@/models/LoteModel";
 import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
 import type { ActualizarLoteRequest } from "@/dtos/lotes/ActualizarLoteRequest";
-import { ApiError } from "@/services/ajax_service";
+import { ApiError, es_error_conexion } from "@/services/ajax_service";
 import { hay_conexion } from "@/services/conectividad_service";
 import {
   actualizar_lote,
   cambiar_estado_lote,
   crear_lote,
+  eliminar_lote,
   obtener_lote,
 } from "@/services/lotes_service";
 
@@ -21,7 +22,8 @@ interface OperacionBase {
 export type OperacionPendienteLote =
   | (OperacionBase & { tipo: "estado"; loteId: number; estado: EstadoLote })
   | (OperacionBase & { tipo: "crear"; loteId: number; request: CrearLoteRequest })
-  | (OperacionBase & { tipo: "actualizar"; loteId: number; request: ActualizarLoteRequest });
+  | (OperacionBase & { tipo: "actualizar"; loteId: number; request: ActualizarLoteRequest })
+  | (OperacionBase & { tipo: "eliminar"; loteId: number });
 
 type ResultadoSincronizacion = "enviada" | "pendiente" | "rechazada";
 
@@ -43,6 +45,9 @@ function normalizar_operacion(valor: unknown): OperacionPendienteLote | null {
   }
   if (tipo === "actualizar" && op.request && typeof op.request === "object") {
     return { id: op.id, loteId: op.loteId, usuarioId: op.usuarioId, creadaEn: op.creadaEn, tipo, request: op.request as ActualizarLoteRequest };
+  }
+  if (tipo === "eliminar") {
+    return { id: op.id, loteId: op.loteId, usuarioId: op.usuarioId, creadaEn: op.creadaEn, tipo };
   }
   return null;
 }
@@ -111,6 +116,16 @@ export function encolar_actualizacion_lote(lote_id: number, request: ActualizarL
   guardar_operacion({ ...crear_base(usuario_id), tipo: "actualizar", loteId: lote_id, request }, true);
 }
 
+export function encolar_eliminacion_lote(lote_id: number, usuario_id: string): void {
+  guardar_operacion({ ...crear_base(usuario_id), tipo: "eliminar", loteId: lote_id }, true);
+}
+
+export function quitar_lote_de_cola(lote_id: number, usuario_id: string): void {
+  const operaciones = leer_cola();
+  guardar_cola(operaciones.filter((op) => !(op.usuarioId === usuario_id && op.loteId === lote_id)));
+  notificar_cambio_cola();
+}
+
 function eliminar_operacion(id: string): void {
   guardar_cola(leer_cola().filter((op) => op.id !== id));
   notificar_cambio_cola();
@@ -122,7 +137,7 @@ function obtener_status(error: unknown): number | null {
 
 function es_fallo_transitorio(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  if (error.message === "No se pudo establecer conexión con la API." || error.message === "Ocurrió un error interno en el servidor. Intentá nuevamente.") return true;
+  if (es_error_conexion(error) || error.message === "Ocurrió un error interno en el servidor. Intentá nuevamente.") return true;
   const status = obtener_status(error);
   return status === 0 || (status !== null && status >= 500);
 }
@@ -134,8 +149,10 @@ async function enviar_operacion(operacion: OperacionPendienteLote): Promise<Resu
       if (!respuesta.exito || !respuesta.datos) throw new ApiError(respuesta.mensaje || "La API rechazó el cambio de estado.", 400, respuesta.errores ?? []);
     } else if (operacion.tipo === "crear") {
       await crear_lote(operacion.request);
-    } else {
+    } else if (operacion.tipo === "actualizar") {
       await actualizar_lote(operacion.loteId, operacion.request);
+    } else {
+      await eliminar_lote(operacion.loteId);
     }
     return "enviada";
   } catch (error) {

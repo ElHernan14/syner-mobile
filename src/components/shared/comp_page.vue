@@ -3,7 +3,8 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-menu-button />
+          <ion-back-button v-if="mostrar_volver" :default-href="ruta_volver" text="Volver" />
+          <ion-menu-button v-else-if="mostrar_menu" />
         </ion-buttons>
 
         <ion-title>{{ titulo }}</ion-title>
@@ -30,6 +31,7 @@
 <script setup lang="ts">
 import {
   IonButtons,
+  IonBackButton,
   IonContent,
   IonHeader,
   IonMenuButton,
@@ -43,10 +45,16 @@ import {
 interface Props {
   titulo: string;
   mostrar_refresher?: boolean;
+  mostrar_menu?: boolean;
+  mostrar_volver?: boolean;
+  ruta_volver?: string;
 }
 
 withDefaults(defineProps<Props>(), {
   mostrar_refresher: false,
+  mostrar_menu: true,
+  mostrar_volver: false,
+  ruta_volver: "/app/inicio",
 });
 
 const emit = defineEmits<{

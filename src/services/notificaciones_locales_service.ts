@@ -36,8 +36,12 @@ export async function mostrar_notificacion_local(
         id: id_notificacion,
         title: titulo,
         body: cuerpo,
+        summaryText: "Actualización de SYNER",
+        group: "syner-actualizaciones",
         extra: datos,
         channelId: "syner_high_importance",
+        smallIcon: "ic_stat_notificacion",
+        iconColor: "#0077F8",
         schedule: {
           at: new Date(Date.now() + 1000),
         },

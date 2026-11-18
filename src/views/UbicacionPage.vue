@@ -1,12 +1,6 @@
 <template>
-  <ion-page>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Mi ubicación</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content class="ion-padding">
+  <comp-page titulo="Mi ubicación">
+    <div class="ion-padding syner-ubicacion">
       <div class="flex min-h-full flex-col justify-center gap-6">
         <div class="text-center">
           <div
@@ -17,33 +11,33 @@
 
           <h1 class="text-2xl font-bold">Ubicación actual</h1>
 
-          <p class="mt-2 text-sm text-gray-500">
+          <p class="mt-2 text-sm syner-ubicacion__muted">
             Obtené la ubicación actual de tu dispositivo.
           </p>
         </div>
 
-        <div v-if="ubicacion" class="rounded-xl border border-gray-200 p-5">
+        <div v-if="ubicacion" class="syner-ubicacion__data rounded-xl border p-5">
           <div class="space-y-4">
             <div>
-              <p class="text-sm text-gray-500">Latitud</p>
+              <p class="text-sm syner-ubicacion__muted">Latitud</p>
 
-              <p class="font-mono text-lg font-semibold">
+              <p class="syner-ubicacion__value font-mono text-lg font-semibold">
                 {{ ubicacion.latitud }}
               </p>
             </div>
 
             <div>
-              <p class="text-sm text-gray-500">Longitud</p>
+              <p class="text-sm syner-ubicacion__muted">Longitud</p>
 
-              <p class="font-mono text-lg font-semibold">
+              <p class="syner-ubicacion__value font-mono text-lg font-semibold">
                 {{ ubicacion.longitud }}
               </p>
             </div>
 
             <div v-if="ubicacion.precision !== null">
-              <p class="text-sm text-gray-500">Precisión</p>
+              <p class="text-sm syner-ubicacion__muted">Precisión</p>
 
-              <p class="font-mono text-lg font-semibold">
+              <p class="syner-ubicacion__value font-mono text-lg font-semibold">
                 {{ ubicacion.precision }} m
               </p>
             </div>
@@ -64,8 +58,8 @@
           {{ error }}
         </ion-text>
       </div>
-    </ion-content>
-  </ion-page>
+    </div>
+  </comp-page>
 </template>
 
 <script setup lang="ts">
@@ -73,15 +67,11 @@ import { ref } from "vue";
 
 import {
   IonButton,
-  IonContent,
-  IonHeader,
   IonIcon,
-  IonPage,
   IonSpinner,
   IonText,
-  IonTitle,
-  IonToolbar,
 } from "@ionic/vue";
+import CompPage from "@/components/shared/comp_page.vue";
 
 import { location } from "ionicons/icons";
 
@@ -117,3 +107,10 @@ async function obtener_ubicacion() {
   }
 }
 </script>
+
+<style scoped>
+.syner-ubicacion { color: var(--syner-text); }
+.syner-ubicacion__muted { color: var(--syner-text-secondary); }
+.syner-ubicacion__data { border-color: var(--syner-border); background: var(--syner-surface); }
+.syner-ubicacion__value { color: var(--syner-text); }
+</style>

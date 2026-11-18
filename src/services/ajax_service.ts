@@ -17,6 +17,18 @@ export class ApiError extends Error {
   }
 }
 
+export class NetworkError extends Error {
+  readonly status = 0;
+  constructor() {
+    super("No pudimos conectarnos en este momento. Revisá tu conexión e intentá de nuevo.");
+    this.name = "NetworkError";
+  }
+}
+
+export function es_error_conexion(error: unknown): boolean {
+  return error instanceof NetworkError || (error instanceof Error && error.message === "No se pudo establecer conexión con la API.");
+}
+
 function construir_url(endpoint: string): string {
   if (!api_url) {
     throw new Error("No se configuró la URL de la API.");
@@ -111,7 +123,7 @@ async function ejecutar_request(
       headers,
     });
   } catch {
-    throw new Error("No se pudo establecer conexión con la API.");
+    throw new NetworkError();
   }
 }
 
@@ -143,7 +155,7 @@ async function ejecutar<T>(
 
       if (
         error instanceof Error &&
-        error.message === "No se pudo establecer conexión con la API."
+        es_error_conexion(error)
       ) {
         throw error;
       }

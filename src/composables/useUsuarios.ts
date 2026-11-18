@@ -5,7 +5,7 @@ import { useUsuariosStore } from "@/stores/usuarios_store";
 export function useUsuarios() {
   const usuarios_store = useUsuariosStore();
 
-  const { usuarios, cargando, error, hay_usuarios } =
+  const { usuarios, cargando, error, hay_usuarios, usando_cache } =
     storeToRefs(usuarios_store);
 
   function cargar_usuarios() {
@@ -17,6 +17,7 @@ export function useUsuarios() {
     cargando,
     error,
     hay_usuarios,
+    usando_cache,
     cargar_usuarios,
   };
 }
