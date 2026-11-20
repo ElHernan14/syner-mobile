@@ -63,7 +63,10 @@ public sealed class LotesController : ControllerBase
         if (!User.IsInRole("admin"))
         {
             var hoy = ObtenerFechaArgentina();
-            consulta = consulta.Where(lote => lote.FechaFin.Date >= hoy);
+            consulta = consulta.Where(lote =>
+                lote.FechaFin.Date >= hoy &&
+                lote.Estado.ToLower() != "borrador" &&
+                lote.Estado.ToLower() != "cancelado");
         }
 
         // Filtro por término
@@ -306,7 +309,10 @@ public sealed class LotesController : ControllerBase
             );
         }
 
-        if (!User.IsInRole("admin") && lote.FechaFin.Date < ObtenerFechaArgentina())
+        if (!User.IsInRole("admin") &&
+            (lote.FechaFin.Date < ObtenerFechaArgentina() ||
+             lote.Estado.ToLower() == "borrador" ||
+             lote.Estado.ToLower() == "cancelado"))
         {
             return RespuestaHttp.NotFound<object>(this, "El lote no está disponible.");
         }

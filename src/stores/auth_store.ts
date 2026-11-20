@@ -403,6 +403,16 @@ export const useAuthStore = defineStore("auth", () => {
     eliminar_sesion_persistida();
   }
 
+  function actualizar_avatar_local(avatar: string) {
+    if (!usuario.value) return;
+    usuario.value.avatar = avatar;
+    const sesion = obtener_sesion_persistida();
+    if (sesion && String(sesion.usuario.id) === String(usuario.value.id)) {
+      guardar_sesion(sesion.accessToken, sesion.refreshToken, usuario.value, biometria_activa.value);
+    }
+    if (biometria_activa.value) localStorage.setItem(BIOMETRIC_PROFILE_KEY, JSON.stringify(usuario.value));
+  }
+
   return {
     access_token,
     refresh_token,
@@ -418,6 +428,7 @@ export const useAuthStore = defineStore("auth", () => {
     iniciar_sesion: iniciar_sesion_store,
     refrescar_sesion: refrescar_sesion_store,
     cerrar_sesion,
+    actualizar_avatar_local,
     activar_biometria,
     desactivar_biometria,
     iniciar_con_biometria,

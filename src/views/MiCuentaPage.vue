@@ -67,7 +67,6 @@
 
       <div class="syner-mi-cuenta__accion">
         <ion-button
-          expand="block"
           :disabled="probando"
           @click="probar_conexion"
         >
@@ -192,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
 import {
   IonButton,
@@ -229,7 +228,7 @@ import { useAuthStore } from "@/stores/auth_store";
 import { usePreferenciasStore } from "@/stores/preferencias_store";
 
 import { actualizar_avatar } from "@/services/usuarios_service";
-import { cargar_url_foto_local, guardar_foto_local, url_avatar_servidor } from "@/services/perfil_foto_service";
+import { cargar_url_foto_local, limpiar_foto_perfil_pendiente, encolar_foto_perfil, obtener_foto_perfil_pendiente, guardar_foto_local, url_avatar_servidor } from "@/services/perfil_foto_service";
 
 interface HealthResponse {
   estado: string;
@@ -385,11 +384,32 @@ const mensaje_foto = ref<{
   mensaje: string;
 } | null>(null);
 
+let reintentar_foto_en_linea: (() => void) | null = null;
+
+async function sincronizar_foto_perfil_pendiente() {
+  const usuario_id = auth_store.usuario?.id;
+  if (!usuario_id || !navigator.onLine) return;
+  const pendiente = await obtener_foto_perfil_pendiente(usuario_id);
+  if (!pendiente) return;
+  try {
+    const respuesta = await actualizar_avatar(pendiente.archivo, pendiente.nombre);
+    if (!respuesta.exito || !respuesta.datos) throw new Error(respuesta.errores?.[0] ?? respuesta.mensaje ?? "No se pudo subir la foto.");
+    limpiar_foto_perfil_pendiente(usuario_id);
+    auth_store.actualizar_avatar_local(respuesta.datos.avatar);
+    mensaje_foto.value = { estado: "ok", mensaje: "La foto de perfil ya está guardada en tu cuenta." };
+  } catch (error) {
+    console.warn("Se reintentará la carga de la foto cuando la conexión esté disponible:", error);
+  }
+}
+
 async function guardar_foto_perfil(web_path: string) {
+  let blob_seleccionado: Blob | null = null;
+  let nombre_archivo = "foto-perfil.jpg";
   try {
     const respuesta = await fetch(web_path);
     if (!respuesta.ok) throw new Error("No se pudo leer la foto seleccionada.");
     const blob = await respuesta.blob();
+    blob_seleccionado = blob;
     const usuario_id = auth_store.usuario?.id;
     if (!usuario_id) throw new Error("Iniciá sesión nuevamente para guardar la foto.");
     foto_perfil.value = await guardar_foto_local(blob, usuario_id);
@@ -404,6 +424,13 @@ async function guardar_foto_perfil(web_path: string) {
     const archivo = new File([blob], `foto-perfil.${extension}`, {
       type: blob.type || "image/jpeg",
     });
+    nombre_archivo = archivo.name;
+
+    if (!navigator.onLine) {
+      await encolar_foto_perfil(blob, usuario_id, archivo.name);
+      mensaje_foto.value = { estado: "ok", mensaje: "La foto quedó guardada y se subirá automáticamente cuando vuelva la conexión." };
+      return;
+    }
 
     const resultado = await actualizar_avatar(archivo, archivo.name);
 
@@ -416,8 +443,9 @@ async function guardar_foto_perfil(web_path: string) {
     }
 
     if (auth_store.usuario) {
-      auth_store.usuario.avatar = resultado.datos.avatar;
+      auth_store.actualizar_avatar_local(resultado.datos.avatar);
     }
+    limpiar_foto_perfil_pendiente(usuario_id);
 
     mensaje_foto.value = {
       estado: "ok",
@@ -426,7 +454,10 @@ async function guardar_foto_perfil(web_path: string) {
   } catch (err) {
     console.error("Error al guardar foto de perfil:", err);
     if (foto_perfil.value) {
-      mensaje_foto.value = { estado: "ok", mensaje: "La foto quedó guardada en este dispositivo. Para verla en otros dispositivos, conectate y volvé a guardarla." };
+      const usuario_id = auth_store.usuario?.id;
+      if (usuario_id && blob_seleccionado) await encolar_foto_perfil(blob_seleccionado, usuario_id, nombre_archivo);
+      mensaje_foto.value = { estado: "ok", mensaje: "La foto quedó guardada y se subirá automáticamente cuando se restablezca la conexión." };
+      if (navigator.onLine) window.setTimeout(() => { void sincronizar_foto_perfil_pendiente(); }, 3000);
     } else {
       mensaje_foto.value = { estado: "error", mensaje: "No se pudo guardar la foto seleccionada." };
     }
@@ -491,6 +522,13 @@ onMounted(async () => {
       } catch { /* La URL remota sigue disponible cuando vuelva la conexión. */ }
     }
   }
+  reintentar_foto_en_linea = () => { void sincronizar_foto_perfil_pendiente(); };
+  window.addEventListener("online", reintentar_foto_en_linea);
+  await sincronizar_foto_perfil_pendiente();
+});
+
+onBeforeUnmount(() => {
+  if (reintentar_foto_en_linea) window.removeEventListener("online", reintentar_foto_en_linea);
 });
 </script>
 
@@ -522,14 +560,14 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 8px;
+  margin-top: 12px;
 }
 .syner-mi-cuenta__accion ion-button { flex: 0 0 auto; }
-.syner-mi-cuenta__accion .syner-mi-cuenta__resultado { flex: 1 1 240px; margin: 0; text-align: left; }
+.syner-mi-cuenta__accion .syner-mi-cuenta__resultado { flex: 0 1 auto; margin: 0; padding: 8px 12px; text-align: left; }
 
 .syner-mi-cuenta__seguridad {
-  margin-top: 24px;
+  margin-top: 12px;
 }
 
 .syner-mi-cuenta__preferencias {

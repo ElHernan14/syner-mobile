@@ -33,7 +33,7 @@
         @reintentar="cargar_lotes"
       />
 
-      <div v-else-if="!hay_lotes" class="syner-lotes__empty">
+      <div v-else-if="!hay_lotes || !lotes_visibles.length" class="syner-lotes__empty">
         <comp-estado-listado
           tipo="vacio"
           :titulo="termino ? 'No se encontraron lotes' : 'No hay lotes disponibles'"
@@ -59,7 +59,7 @@
             }}
           </span>
         </div>
-        <div v-for="lote in lotes" :key="lote.id" class="syner-lotes__item">
+        <div v-for="lote in lotes_visibles" :key="lote.id" class="syner-lotes__item">
           <comp-lote-card
             :lote="lote"
             :puede-gestionar="es_admin"
@@ -399,6 +399,10 @@ const es_usuario = computed(() => {
   return auth_store.rol === "usuario";
 });
 
+const lotes_visibles = computed(() => es_usuario.value
+  ? lotes.value.filter((lote) => !["borrador", "cancelado"].includes(String(lote.estado).toLowerCase()))
+  : lotes.value);
+
 const pedidos_store = usePedidos();
 function tiene_pedido_activo(lote_id: number): boolean {
   return pedidos_store.pedidos.value.some((pedido) => Number(pedido.lote.id) === lote_id && pedido.estado.toLowerCase() !== "cancelado");
@@ -507,8 +511,8 @@ function abrir_cambio_estado(lote: Lote) {
   modal_estado_abierto.value = true;
 }
 
-function cerrar_cambio_estado() {
-  if (cambiando_estado.value) {
+function cerrar_cambio_estado(forzar = false) {
+  if (cambiando_estado.value && !forzar) {
     return;
   }
 
@@ -550,7 +554,7 @@ async function confirmar_cambio_estado() {
       );
     }
 
-    cerrar_cambio_estado();
+    cerrar_cambio_estado(true);
 
     // No recargar si quedó pendiente: podríamos reemplazar
     // el estado optimista por los datos viejos del caché.

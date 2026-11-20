@@ -136,6 +136,7 @@ public sealed class FirebasePushService
             {
                 ChannelId = "syner_high_importance",
                 Icon = "ic_stat_notificacion",
+                Color = "#4968E8",
                 Sound = "default"
             }
         };
