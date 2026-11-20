@@ -25,5 +25,13 @@ public sealed class ProveedorConfiguration : IEntityTypeConfiguration<Proveedor>
 
         builder.Property(x => x.Verificado)
             .IsRequired();
+
+        builder.Property(x => x.Latitud)
+            .HasPrecision(10, 7)
+            .IsRequired(false);
+
+        builder.Property(x => x.Longitud)
+            .HasPrecision(10, 7)
+            .IsRequired(false);
     }
 }

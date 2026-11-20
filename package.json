@@ -13,7 +13,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/barcode-scanner": "^3.1.2",
     "@capacitor/camera": "^8.2.4",
     "@capacitor/cli": "^8.5.0",

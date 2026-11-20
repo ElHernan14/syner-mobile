@@ -30,7 +30,9 @@ public sealed class ProveedoresController : ControllerBase
                 id = proveedor.Id,
                 nombre = proveedor.Nombre,
                 descripcion = proveedor.Descripcion,
-                verificado = proveedor.Verificado
+                verificado = proveedor.Verificado,
+                latitud = proveedor.Latitud,
+                longitud = proveedor.Longitud
             })
             .ToListAsync(cancellationToken);
 

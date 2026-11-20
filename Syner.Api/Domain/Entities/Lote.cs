@@ -17,6 +17,7 @@ public sealed class Lote : EntityBase
     public DateTime FechaFin { get; set; }
 
     public string Estado { get; set; } = string.Empty;
+    public string? ImagenAvatar { get; set; }
 
     public long ProveedorId { get; set; }
 

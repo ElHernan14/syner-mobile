@@ -3,4 +3,6 @@ export interface Proveedor {
   nombre: string;
   descripcion: string;
   verificado: boolean;
+  latitud?: number | null;
+  longitud?: number | null;
 }

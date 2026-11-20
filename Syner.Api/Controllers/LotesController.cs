@@ -11,6 +11,7 @@ using Syner.Api.Domain.Enums;
 using Syner.Api.Domain.States;
 using Syner.Api.Services.Lotes;
 using Syner.Api.Services.Notificaciones;
+using Syner.Api.Services.Archivos;
 
 namespace Syner.Api.Controllers;
 
@@ -24,18 +25,24 @@ public sealed class LotesController : ControllerBase
     private readonly LoteQrService _lote_qr_service;
     private readonly NotificacionService _notificacionService;
     private readonly NotificacionPushService _notificacion_push_service;
+    private readonly HistorialLoteService _historial_lote_service;
+    private readonly IAlmacenamientoImagenesService _almacenamiento_imagenes_service;
     public LotesController(
         SynerDbContext db,
         LotePdfService lote_pdf_service,
         LoteQrService lote_qr_service,
         NotificacionService notificacionService,
-        NotificacionPushService notificacion_push_service)
+        NotificacionPushService notificacion_push_service,
+        HistorialLoteService historial_lote_service,
+        IAlmacenamientoImagenesService almacenamiento_imagenes_service)
     {
         _db = db;
         _lote_pdf_service = lote_pdf_service;
         _lote_qr_service = lote_qr_service;
         _notificacionService = notificacionService;
         _notificacion_push_service = notificacion_push_service;
+        _historial_lote_service = historial_lote_service;
+        _almacenamiento_imagenes_service = almacenamiento_imagenes_service;
     }
 
     [HttpGet]
@@ -133,12 +140,15 @@ public sealed class LotesController : ControllerBase
                 fecha_inicio = lote.FechaInicio,
                 fecha_fin = lote.FechaFin,
                 estado = lote.Estado,
+                imagen_avatar = lote.ImagenAvatar,
                 proveedor = new
                 {
                     id = lote.Proveedor.Id,
                     nombre = lote.Proveedor.Nombre,
                     descripcion = lote.Proveedor.Descripcion,
-                    verificado = lote.Proveedor.Verificado
+                    verificado = lote.Proveedor.Verificado,
+                    latitud = lote.Proveedor.Latitud,
+                    longitud = lote.Proveedor.Longitud
                 }
             })
             .ToListAsync(cancellationToken);
@@ -254,7 +264,8 @@ public sealed class LotesController : ControllerBase
             Estado = EstadoLote.Borrador
                 .ToString()
                 .ToLowerInvariant(),
-            ProveedorId = request.ProveedorId
+            ProveedorId = request.ProveedorId,
+            ImagenAvatar = request.ImagenAvatar
         };
 
         _db.Lotes.Add(lote);
@@ -278,6 +289,7 @@ public sealed class LotesController : ControllerBase
                 fecha_inicio = lote.FechaInicio,
                 fecha_fin = lote.FechaFin,
                 estado = lote.Estado,
+                imagen_avatar = lote.ImagenAvatar,
                 proveedor_id = lote.ProveedorId,
                 proveedor = _db.Proveedores.AsNoTracking().Where(p => p.Id == lote.ProveedorId)
                     .Select(p => new { id = p.Id, nombre = p.Nombre, descripcion = p.Descripcion, verificado = p.Verificado })
@@ -334,13 +346,16 @@ public sealed class LotesController : ControllerBase
                 lote.FechaInicio,
                 lote.FechaFin,
                 lote.Estado,
+                lote.ImagenAvatar,
                 lote.ProveedorId,
                 Proveedor = new
                 {
                     lote.Proveedor.Id,
                     lote.Proveedor.Nombre,
                     lote.Proveedor.Descripcion,
-                    lote.Proveedor.Verificado
+                    lote.Proveedor.Verificado,
+                    lote.Proveedor.Latitud,
+                    lote.Proveedor.Longitud
                 }
             }
         );
@@ -466,6 +481,10 @@ public sealed class LotesController : ControllerBase
         lote.FechaInicio = request.FechaInicio;
         lote.FechaFin = request.FechaFin;
         lote.ProveedorId = request.ProveedorId;
+        if (request.ImagenAvatar is not null)
+        {
+            lote.ImagenAvatar = request.ImagenAvatar;
+        }
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -483,6 +502,7 @@ public sealed class LotesController : ControllerBase
             fecha_inicio = lote.FechaInicio,
             fecha_fin = lote.FechaFin,
             estado = lote.Estado,
+            imagen_avatar = lote.ImagenAvatar,
             proveedor_id = lote.ProveedorId
         };
 
@@ -491,6 +511,118 @@ public sealed class LotesController : ControllerBase
             "Lote actualizado correctamente.",
             resultado
         );
+    }
+
+    [HttpPost("imagen-avatar")]
+    [Authorize(Roles = "admin")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(5 * 1024 * 1024 + 128 * 1024)]
+    public async Task<IActionResult> SubirImagenAvatar(
+        [FromForm(Name = "imagen")] IFormFile? imagen,
+        CancellationToken cancellationToken)
+    {
+        const long tamaño_maximo = 5 * 1024 * 1024;
+        if (imagen is null || imagen.Length == 0)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "Seleccioná una imagen para el lote."
+            );
+        }
+
+        if (imagen.Length > tamaño_maximo)
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "La imagen supera el tamaño máximo de 5 MB."
+            );
+        }
+
+        if (!await TieneFormatoImagenValido(imagen, cancellationToken))
+        {
+            return RespuestaHttp.BadRequest<object>(
+                this,
+                "La imagen debe ser un archivo JPG, PNG o WEBP válido."
+            );
+        }
+
+        try
+        {
+            var imagenUrl = await _almacenamiento_imagenes_service
+                .SubirImagenLoteAsync(imagen, cancellationToken);
+
+            return RespuestaHttp.Ok(
+                this,
+                "Imagen del lote cargada correctamente.",
+                new { imagen_avatar = imagenUrl }
+            );
+        }
+        catch (AlmacenamientoImagenesException)
+        {
+            return StatusCode(
+                StatusCodes.Status502BadGateway,
+                new
+                {
+                    exito = false,
+                    mensaje = "No se pudo cargar la imagen del lote.",
+                    datos = (object?)null,
+                    errores = new[] { "El almacenamiento de imágenes no está disponible." }
+                }
+            );
+        }
+    }
+
+    private static async Task<bool> TieneFormatoImagenValido(
+        IFormFile imagen,
+        CancellationToken cancellationToken)
+    {
+        var extension = Path.GetExtension(imagen.FileName).ToLowerInvariant();
+        var tipo = imagen.ContentType.ToLowerInvariant();
+        var formato = (extension, tipo) switch
+        {
+            (".jpg" or ".jpeg", "image/jpeg") => "jpeg",
+            (".png", "image/png") => "png",
+            (".webp", "image/webp") => "webp",
+            _ => string.Empty
+        };
+
+        if (formato.Length == 0)
+        {
+            return false;
+        }
+
+        var cabecera = new byte[12];
+        var totalLeido = 0;
+        await using var stream = imagen.OpenReadStream();
+        while (totalLeido < cabecera.Length)
+        {
+            var leidos = await stream.ReadAsync(
+                cabecera.AsMemory(totalLeido),
+                cancellationToken
+            );
+            if (leidos == 0)
+            {
+                break;
+            }
+
+            totalLeido += leidos;
+        }
+
+        return formato switch
+        {
+            "jpeg" => totalLeido >= 3 &&
+                cabecera[0] == 0xFF &&
+                cabecera[1] == 0xD8 &&
+                cabecera[2] == 0xFF,
+            "png" => totalLeido >= 8 &&
+                cabecera.AsSpan(0, 8).SequenceEqual(
+                    new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }
+                ),
+            "webp" => totalLeido >= 12 &&
+                cabecera.AsSpan(0, 4).SequenceEqual("RIFF"u8) &&
+                cabecera.AsSpan(8, 4).SequenceEqual("WEBP"u8),
+            _ => false
+        };
     }
 
     private static decimal CalcularPorcentajeAhorro(decimal precioMercado, decimal precioCupo)
@@ -554,9 +686,14 @@ public sealed class LotesController : ControllerBase
         }
 
         // Baja lógica
+        var estado_anterior_baja = lote.Estado;
         lote.Estado = EstadoLote.Cancelado
             .ToString()
             .ToLowerInvariant();
+
+        var usuario_baja_id = ObtenerUsuarioIdActual();
+        if (usuario_baja_id is null) return Unauthorized();
+        _historial_lote_service.RegistrarCambio(lote, usuario_baja_id.Value, estado_anterior_baja, lote.Estado);
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -718,10 +855,14 @@ public sealed class LotesController : ControllerBase
             );
 
         var usuariosIds = new List<long>();
+        var usuario_modificador_id = ObtenerUsuarioIdActual();
+        if (usuario_modificador_id is null) return Unauthorized();
 
         try
         {
-            lote.Estado = nuevoEstado.ToString().ToLower();
+            var estado_anterior = lote.Estado;
+            lote.Estado = nuevoEstado.ToString().ToLowerInvariant();
+            _historial_lote_service.RegistrarCambio(lote, usuario_modificador_id.Value, estado_anterior, lote.Estado);
 
             usuariosIds = await _db.Pedidos
                 .AsNoTracking()
@@ -776,5 +917,12 @@ public sealed class LotesController : ControllerBase
                 lote.Estado
             }
         );
+    }
+
+    private long? ObtenerUsuarioIdActual()
+    {
+        var valor = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+        return long.TryParse(valor, out var usuarioId) ? usuarioId : null;
     }
 }

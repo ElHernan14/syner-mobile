@@ -5,7 +5,9 @@ import {
   actualizar,
   eliminar,
   ApiError,
+  crear_form_data,
 } from "@/services/ajax_service";
+import { obtener_api_url } from "@/config/debug";
 
 import type { Lote, EstadoLote } from "@/models/LoteModel";
 
@@ -17,6 +19,8 @@ interface ProveedorApi {
   nombre: string;
   descripcion: string;
   verificado: boolean;
+  latitud?: number | null;
+  longitud?: number | null;
 }
 
 interface LoteApi {
@@ -32,6 +36,7 @@ interface LoteApi {
   fecha_inicio: string;
   fecha_fin: string;
   estado: EstadoLote;
+  imagen_avatar?: string | null;
   proveedor: ProveedorApi;
 }
 
@@ -48,6 +53,7 @@ interface LoteResponseApi {
   fecha_inicio: string;
   fecha_fin: string;
   estado: EstadoLote;
+  imagen_avatar?: string | null;
   proveedor_id: number;
   proveedor?: ProveedorApi;
 }
@@ -65,6 +71,7 @@ interface LoteDetalleApi {
   fechaInicio: string;
   fechaFin: string;
   estado: EstadoLote;
+  imagenAvatar?: string | null;
   proveedorId: number;
   proveedor?: ProveedorApi | null;
 }
@@ -90,6 +97,7 @@ function mapearLoteDetalle(lote: LoteDetalleApi): Lote {
     fechaInicio: lote.fechaInicio,
     fechaFin: lote.fechaFin,
     estado: lote.estado,
+    imagenAvatar: lote.imagenAvatar ?? null,
     proveedorId: lote.proveedorId,
     proveedor: mapearProveedor(proveedor),
   };
@@ -126,6 +134,8 @@ function mapearProveedor(proveedor: ProveedorApi): ProveedorApi {
     nombre: proveedor.nombre,
     descripcion: proveedor.descripcion,
     verificado: proveedor.verificado,
+    latitud: proveedor.latitud ?? null,
+    longitud: proveedor.longitud ?? null,
   };
 }
 
@@ -143,6 +153,7 @@ function mapearLote(lote: LoteApi): Lote {
     fechaInicio: lote.fecha_inicio,
     fechaFin: lote.fecha_fin,
     estado: lote.estado,
+    imagenAvatar: lote.imagen_avatar ?? null,
     proveedorId: lote.proveedor.id,
     proveedor: mapearProveedor(lote.proveedor),
   };
@@ -169,6 +180,7 @@ function mapearRespuesta(lote: LoteResponseApi): Lote {
     fechaInicio: lote.fecha_inicio,
     fechaFin: lote.fecha_fin,
     estado: lote.estado,
+    imagenAvatar: lote.imagen_avatar ?? null,
     proveedorId: lote.proveedor_id,
     proveedor: mapearProveedor(proveedor),
   };
@@ -184,6 +196,25 @@ function obtenerDatos<T>(respuesta: RespuestaApi<T>): T {
   }
 
   return respuesta.datos;
+}
+
+export function url_imagen_lote(imagen: string | null | undefined): string | null {
+  if (!imagen) return null;
+
+  const apiUrl = obtener_api_url();
+  if (!apiUrl) return null;
+
+  try {
+    const apiOrigin = new URL(apiUrl).origin;
+    const url = new URL(imagen, `${apiOrigin}/`);
+    if (url.protocol === "https:" || url.origin === apiOrigin) {
+      return url.href;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 function validarTexto(valor: string, campo: string): void {
@@ -329,6 +360,25 @@ export async function crear_lote(request: CrearLoteRequest): Promise<Lote> {
     );
 
     return mapearRespuesta(obtenerDatos(respuesta));
+  } catch (error) {
+    return manejarError(error);
+  }
+}
+
+interface RespuestaImagenLote {
+  imagen_avatar: string;
+}
+
+export async function subir_imagen_lote(imagen: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("imagen", imagen, imagen.name);
+
+  try {
+    const respuesta = await crear_form_data<RespuestaApi<RespuestaImagenLote>>(
+      "lotes/imagen-avatar",
+      formData,
+    );
+    return obtenerDatos(respuesta).imagen_avatar;
   } catch (error) {
     return manejarError(error);
   }

@@ -31,6 +31,15 @@ public sealed class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         builder.Property(x => x.CodigoEntrega)
             .HasMaxLength(50);
 
+        builder.Property(x => x.FirmaPath)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
+        builder.Property(x => x.TokenPublico)
+            .HasMaxLength(32)
+            .IsRequired();
+        builder.HasIndex(x => x.TokenPublico).IsUnique();
+
         builder.HasOne(x => x.Usuario)
             .WithMany()
             .HasForeignKey(x => x.UsuarioId)

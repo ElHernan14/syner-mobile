@@ -10,6 +10,8 @@ using Syner.Api.Data.Validation;
 using Syner.Api.Domain.DTOs.Auth;
 using Syner.Api.Services;
 using Syner.Api.Domain.Entities;
+using Google.Apis.Auth;
+using System.Text.Json.Serialization;
 
 namespace Syner.Api.Controllers;
 
@@ -22,19 +24,66 @@ public sealed class AuthController : ControllerBase
     private readonly JwtTokenService _jwtTokenService;
     private readonly RefreshTokenService _refreshTokenService;
     private readonly JwtOptions _jwtOptions;
+    private readonly IConfiguration _configuration;
 
     public AuthController(
         SynerDbContext db,
         PasswordService passwordService,
         JwtTokenService jwtTokenService,
         RefreshTokenService refreshTokenService,
-        IOptions<JwtOptions> jwtOptions)
+        IOptions<JwtOptions> jwtOptions,
+        IConfiguration configuration)
     {
         _db = db;
         _passwordService = passwordService;
         _jwtTokenService = jwtTokenService;
         _refreshTokenService = refreshTokenService;
         _jwtOptions = jwtOptions.Value;
+        _configuration = configuration;
+    }
+
+    public sealed record GoogleLoginRequest([property: JsonPropertyName("id_token")] string IdToken);
+
+    [HttpPost("google")]
+    [AllowAnonymous]
+    public async Task<IActionResult> LoginGoogle(GoogleLoginRequest request, CancellationToken cancellationToken)
+    {
+        var webClientId = _configuration["GoogleAuth:WebClientId"];
+        if (string.IsNullOrWhiteSpace(webClientId))
+            return StatusCode(503, new { exito = false, mensaje = "El ingreso con Google aún no está configurado." });
+        if (string.IsNullOrWhiteSpace(request.IdToken)) return BadRequest(new { exito = false, mensaje = "Google no devolvió un token válido." });
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new[] { webClientId }
+            });
+        }
+        catch (InvalidJwtException)
+        {
+            return Unauthorized(new { exito = false, mensaje = "La credencial de Google no es válida o expiró." });
+        }
+
+        if (payload.Email is null || !payload.EmailVerified)
+            return Unauthorized(new { exito = false, mensaje = "La cuenta de Google no tiene un correo verificado." });
+
+        var correo = payload.Email.Trim().ToLowerInvariant();
+        var usuario = await _db.Usuarios.Include(x => x.Rol).FirstOrDefaultAsync(x => x.Correo.ToLower() == correo, cancellationToken);
+        if (usuario is null || !string.Equals(usuario.Estado, "verificado", StringComparison.OrdinalIgnoreCase))
+            return StatusCode(403, new { exito = false, mensaje = "Tu cuenta de Google no está habilitada en SYNER. Solicitá el alta a un administrador." });
+
+        await _refreshTokenService.LimpiarTokensInutilizables(_db, usuario.Id, cancellationToken);
+        var accessToken = _jwtTokenService.GenerarAccessToken(usuario);
+        var refreshToken = _refreshTokenService.GenerarToken();
+        _db.RefreshTokens.Add(_refreshTokenService.Crear(usuario, refreshToken, _jwtOptions.RefreshTokenExpirationDays));
+        await _db.SaveChangesAsync(cancellationToken);
+        return RespuestaHttp.Ok(this, "Inicio de sesión con Google correcto.", new
+        {
+            accessToken, refreshToken, expiresIn = _jwtOptions.ExpirationMinutes * 60,
+            usuario = new { id = usuario.Id, nombre = usuario.Nombre, correo = usuario.Correo, rol = usuario.Rol?.Nombre, estado = usuario.Estado }
+        });
     }
 
     [HttpPost("login")]

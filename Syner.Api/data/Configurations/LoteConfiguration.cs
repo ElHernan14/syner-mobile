@@ -55,6 +55,10 @@ public sealed class LoteConfiguration : IEntityTypeConfiguration<Lote>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(x => x.ImagenAvatar)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
         builder.Property(x => x.ProveedorId)
             .IsRequired();
 

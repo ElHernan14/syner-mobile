@@ -118,6 +118,7 @@ import {
   peopleOutline,
   personCircleOutline,
   receiptOutline,
+  timeOutline,
   qrCodeOutline,
 } from "ionicons/icons";
 
@@ -153,6 +154,7 @@ const iconos = {
   "qr-code-outline": qrCodeOutline,
   "person-circle-outline": personCircleOutline,
   "location-outline": locationOutline,
+  "time-outline": timeOutline,
 };
 
 const nombre_usuario = computed(() => {

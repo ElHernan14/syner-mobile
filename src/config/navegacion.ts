@@ -100,12 +100,23 @@ const navegacion: ItemNavegacion[] = [
   },
 
   {
+    id: "historial-lotes",
+    titulo: "Historial",
+    ruta: "/app/historial-lotes",
+    icono: "time-outline",
+    grupo_menu: "configuracion",
+    orden: 7,
+    componente: () => import("@/views/HistorialLotesPage.vue"),
+    roles: ["admin"],
+  },
+
+  {
     id: "mi-cuenta",
     titulo: "Mi Cuenta",
     ruta: "/app/mi-cuenta",
     icono: "person-circle-outline",
     grupo_menu: "configuracion",
-    orden: 7,
+    orden: 8,
     componente: () => import("@/views/MiCuentaPage.vue"),
   },
 
@@ -115,7 +126,7 @@ const navegacion: ItemNavegacion[] = [
     ruta: "/app/escanear-qr",
     icono: "qr-code-outline",
     grupo_menu: "herramientas",
-    orden: 8,
+    orden: 9,
     componente: () => import("@/views/EscanearQrPage.vue"),
   },
 
@@ -125,7 +136,7 @@ const navegacion: ItemNavegacion[] = [
     ruta: "/app/ubicacion",
     icono: "location-outline",
     grupo_menu: "herramientas",
-    orden: 9,
+    orden: 10,
     componente: () => import("@/views/UbicacionPage.vue"),
   },
 ];

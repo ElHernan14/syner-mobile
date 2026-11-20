@@ -1,4 +1,4 @@
-import { obtener, crear } from "@/services/ajax_service";
+import { obtener, crear_form_data } from "@/services/ajax_service";
 
 import type { ApiResponse } from "@/models/api_response";
 import type { ResultadoPaginado } from "@/models/paginacion";
@@ -88,10 +88,6 @@ export async function obtener_pedidos(
   };
 }
 
-interface CrearPedidoCupoRequest {
-  loteId: number;
-}
-
 interface CrearPedidoCupoData {
   id: number;
   usuarioId: number;
@@ -110,10 +106,10 @@ interface CrearPedidoCupoResponse {
 
 export async function adquirir_cupo(
   lote_id: number,
+  firma: Blob,
 ): Promise<CrearPedidoCupoResponse> {
-  const request: CrearPedidoCupoRequest = {
-    loteId: lote_id,
-  };
-
-  return crear<CrearPedidoCupoResponse>("pedidos/cupo", request);
+  const form = new FormData();
+  form.append("loteId", String(lote_id));
+  form.append("firma", firma, "firma-conformidad.png");
+  return crear_form_data<CrearPedidoCupoResponse>("pedidos/cupo", form);
 }

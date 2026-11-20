@@ -218,6 +218,25 @@
       </ion-content>
     </ion-modal>
 
+    <ion-modal :is-open="modal_firma_abierto" @did-dismiss="cerrar_firma">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Confirmar cupo</ion-title>
+          <ion-buttons slot="end"><ion-button :disabled="enviando_cupo" @click="cerrar_firma">Cerrar</ion-button></ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <section class="syner-lotes__firma-modal">
+          <p>Para solicitar un cupo en <strong>{{ lote_pendiente_firma?.nombre }}</strong>, firmá la conformidad. La firma se adjunta al pedido.</p>
+          <comp-firma-canvas ref="firma_canvas_ref" />
+          <ion-button expand="block" :disabled="enviando_cupo" @click="confirmar_cupo_con_firma">
+            <ion-spinner v-if="enviando_cupo" name="crescent" />
+            <span v-else>Firmar y solicitar cupo</span>
+          </ion-button>
+        </section>
+      </ion-content>
+    </ion-modal>
+
     <!-- Modal cambio de estado -->
     <ion-modal
       :is-open="modal_estado_abierto"
@@ -372,13 +391,18 @@ import CompPaginacion from "@/components/shared/comp_paginacion.vue";
 import CompLoteCard from "@/components/lotes/comp_lote_card.vue";
 import CompLoteFiltros from "@/components/lotes/comp_lote_filtros.vue";
 import CompLoteFormulario from "@/components/lotes/comp_lote_formulario.vue";
+import CompFirmaCanvas from "@/components/pedidos/comp_firma_canvas.vue";
 
 import { useLotes } from "@/composables/useLotes";
 import { useProveedores } from "@/composables/useProveedores";
 import { useAuthStore } from "@/stores/auth_store";
 import { conectado } from "@/services/conectividad_service";
 
-import { obtener_pdf_lote, obtener_qr_lote } from "@/services/lotes_service";
+import {
+  obtener_pdf_lote,
+  obtener_qr_lote,
+  subir_imagen_lote,
+} from "@/services/lotes_service";
 
 import { abrir_pdf, compartir_pdf } from "@/services/archivo_service";
 
@@ -462,6 +486,11 @@ const {
 } = useProveedores();
 
 const termino = ref("");
+interface FirmaCanvasRef { obtener_png: () => Promise<Blob>; limpiar: () => void }
+const firma_canvas_ref = ref<FirmaCanvasRef | null>(null);
+const lote_pendiente_firma = ref<Lote | null>(null);
+const modal_firma_abierto = ref(false);
+const enviando_cupo = ref(false);
 
 const mostrar_formulario = ref(false);
 const lote_seleccionado = ref<Lote | null>(null);
@@ -634,7 +663,10 @@ function editar_lote(lote: Lote) {
   }
 }
 
-async function guardar_lote(request: CrearLoteRequest | ActualizarLoteRequest) {
+async function guardar_lote(payload: {
+  request: CrearLoteRequest | ActualizarLoteRequest;
+  imagen: File | null;
+}) {
   if (!es_admin.value) {
     return;
   }
@@ -644,6 +676,17 @@ async function guardar_lote(request: CrearLoteRequest | ActualizarLoteRequest) {
   const es_edicion = lote_seleccionado.value !== null;
 
   try {
+    if (payload.imagen && !conectado.value) {
+      throw new Error("Conectate a internet para subir la imagen del lote.");
+    }
+
+    const request = payload.imagen
+      ? {
+          ...payload.request,
+          imagenAvatar: await subir_imagen_lote(payload.imagen),
+        }
+      : payload.request;
+
     if (es_edicion) {
       const lote_actualizado = await actualizar_lote(
         lote_seleccionado.value!.id,
@@ -840,13 +883,32 @@ async function adquirir_cupo(lote: Lote) {
     return;
   }
 
+  lote_pendiente_firma.value = lote;
+  firma_canvas_ref.value?.limpiar();
+  modal_firma_abierto.value = true;
+}
+
+function cerrar_firma() {
+  if (enviando_cupo.value) return;
+  modal_firma_abierto.value = false;
+  lote_pendiente_firma.value = null;
+}
+
+async function confirmar_cupo_con_firma() {
+  const lote = lote_pendiente_firma.value;
+  if (!lote || enviando_cupo.value) return;
   try {
-    await adquirir_cupo_api(lote.id);
+    enviando_cupo.value = true;
+    const firma = await firma_canvas_ref.value?.obtener_png();
+    if (!firma) throw new Error("Firmá dentro del recuadro para continuar.");
+    await adquirir_cupo_api(lote.id, firma);
 
     mostrar_toast_exito(
       `¡Cupo adquirido! Te asignamos un pedido para "${lote.nombre}".`,
     );
 
+    modal_firma_abierto.value = false;
+    lote_pendiente_firma.value = null;
     await pedidos_store.cargar_pedidos();
     await cargar_lotes(page.value, termino.value);
   } catch (error) {
@@ -854,6 +916,8 @@ async function adquirir_cupo(lote: Lote) {
       error instanceof Error ? error.message : "No se pudo adquirir el cupo.";
 
     mostrar_toast_error(mensaje);
+  } finally {
+    enviando_cupo.value = false;
   }
 }
 
@@ -985,6 +1049,9 @@ onMounted(() => {
   flex-direction: column;
   gap: 12px;
 }
+
+.syner-lotes__firma-modal { display: grid; gap: 18px; max-width: 640px; margin: 0 auto; }
+.syner-lotes__firma-modal > p { margin: 4px 0; color: var(--syner-text-secondary); line-height: 1.5; }
 
 .syner-lotes__estado-modal-label {
   margin: 0;

@@ -18,6 +18,7 @@ import "./theme/variables.css";
 
 import { IonicVue } from "@ionic/vue";
 import { iniciar_sincronizacion_offline } from "@/services/sincronizacion_offline_service";
+import { App as CapacitorApp } from "@capacitor/app";
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -29,3 +30,13 @@ app.use(router);
 iniciar_sincronizacion_offline(pinia);
 
 app.mount("#app");
+
+function abrir_enlace_publico(url: string) {
+  try {
+    const ruta = new URL(url).pathname;
+    if (/^\/p\/[a-f0-9]{32}$/i.test(ruta)) void router.replace(ruta);
+  } catch { /* Se ignoran URLs ajenas al App Link. */ }
+}
+
+void CapacitorApp.addListener("appUrlOpen", ({ url }) => abrir_enlace_publico(url));
+void CapacitorApp.getLaunchUrl().then((launch) => { if (launch?.url) abrir_enlace_publico(launch.url); });

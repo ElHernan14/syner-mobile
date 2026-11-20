@@ -27,6 +27,10 @@ export function useAuth() {
     auth_store.cerrar_sesion();
   }
 
+  function iniciar_sesion_google() {
+    return auth_store.iniciar_sesion_google();
+  }
+
   return {
     access_token,
     refresh_token,
@@ -38,6 +42,7 @@ export function useAuth() {
     es_admin,
     es_usuario,
     iniciar_sesion,
+    iniciar_sesion_google,
     cerrar_sesion,
   };
 }

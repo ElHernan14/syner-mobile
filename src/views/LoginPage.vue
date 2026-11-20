@@ -60,6 +60,12 @@
 
               <span v-else>Ingresar</span>
             </ion-button>
+            <ion-button v-if="es_android" class="syner-login__google" type="button" expand="block" fill="outline" :disabled="cargando" @click="iniciar_sesion_con_google">
+              Continuar con Google
+            </ion-button>
+            <ion-button type="button" expand="block" fill="clear" :disabled="cargando" @click="router.push('/catalogo')">
+              Ver catálogo sin cuenta
+            </ion-button>
           </form>
         </div>
       </div>
@@ -69,6 +75,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
+import { Capacitor } from "@capacitor/core";
 
 import {
   IonButton,
@@ -84,8 +91,9 @@ import { useRouter } from "vue-router";
 import { useAuth } from "@/composables/useAuth";
 
 const router = useRouter();
+const es_android = Capacitor.getPlatform() === "android";
 
-const { cargando, error: error_auth, iniciar_sesion: iniciar_sesion_auth } = useAuth();
+const { cargando, error: error_auth, iniciar_sesion: iniciar_sesion_auth, iniciar_sesion_google: iniciar_sesion_google_auth } = useAuth();
 
 const correo = ref("");
 const password = ref("");
@@ -111,6 +119,15 @@ async function iniciar_sesion() {
     // El store conserva y muestra el error de autenticación.
   }
 
+}
+
+async function iniciar_sesion_con_google() {
+  try {
+    await iniciar_sesion_google_auth();
+    await router.replace("/app/inicio");
+  } catch {
+    // El error queda reflejado en el estado de autenticación.
+  }
 }
 </script>
 

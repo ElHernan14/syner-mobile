@@ -69,12 +69,59 @@
               @ion-input="limpiar_error_campo('descripcion')"
             />
 
+            <div class="syner-lote-formulario__voz">
+              <ion-button
+                v-if="voz_disponible"
+                type="button"
+                fill="outline"
+                size="small"
+                :disabled="dictando || procesando"
+                @click="dictar_descripcion"
+              >
+                <ion-icon slot="start" :icon="dictando ? micOffOutline : micOutline" />
+                {{ dictando ? "Escuchando…" : "Dictar descripción" }}
+              </ion-button>
+              <span v-else>Podés completar la descripción con el teclado.</span>
+            </div>
+            <span v-if="error_voz" class="syner-lote-formulario__field-error" role="status">{{ error_voz }}</span>
+
             <span
               v-if="errores.descripcion"
               class="syner-lote-formulario__field-error"
             >
               {{ errores.descripcion }}
             </span>
+          </div>
+
+          <div class="syner-lote-formulario__field syner-lote-formulario__full">
+            <label class="syner-lote-formulario__image-label" for="lote-imagen-avatar">
+              Imagen del lote <span>Opcional · JPG, PNG o WEBP · máximo 5 MB</span>
+            </label>
+            <input
+              id="lote-imagen-avatar"
+              class="syner-lote-formulario__image-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              :disabled="procesando"
+              @change="seleccionar_imagen"
+            />
+            <p v-if="error_imagen" class="syner-lote-formulario__field-error" role="alert">
+              {{ error_imagen }}
+            </p>
+            <div v-if="imagen_previa" class="syner-lote-formulario__image-preview">
+              <img :src="imagen_previa" alt="Vista previa de la imagen del lote" />
+              <ion-button
+                v-if="imagen_seleccionada"
+                type="button"
+                fill="clear"
+                size="small"
+                :disabled="procesando"
+                @click="limpiar_imagen_seleccionada"
+              >
+                Descartar nueva imagen
+              </ion-button>
+              <span v-else>Imagen actual del lote</span>
+            </div>
           </div>
 
           <div class="syner-lote-formulario__field">
@@ -236,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import {
   IonButton,
   IonCard,
@@ -245,6 +292,7 @@ import {
   IonCardSubtitle,
   IonCardTitle,
   IonInput,
+  IonIcon,
   IonSelect,
   IonSelectOption,
   IonTextarea,
@@ -254,6 +302,9 @@ import type { Lote } from "@/models/LoteModel";
 import type { Proveedor } from "@/models/proveedor";
 import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
 import type { ActualizarLoteRequest } from "@/dtos/lotes/ActualizarLoteRequest";
+import { micOffOutline, micOutline } from "ionicons/icons";
+import { dictado_disponible, dictar_texto_largo } from "@/services/voz_service";
+import { url_imagen_lote } from "@/services/lotes_service";
 
 type CampoFormulario =
   | "nombre"
@@ -284,7 +335,10 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  guardar: [request: CrearLoteRequest | ActualizarLoteRequest];
+  guardar: [payload: {
+    request: CrearLoteRequest | ActualizarLoteRequest;
+    imagen: File | null;
+  }];
   cancelar: [];
 }>();
 
@@ -303,6 +357,32 @@ const formulario = reactive({
 const errores = reactive<ErroresFormulario>({});
 
 const modo_edicion = computed(() => props.lote !== null);
+const voz_disponible = ref(false);
+const dictando = ref(false);
+const error_voz = ref("");
+const imagen_seleccionada = ref<File | null>(null);
+const imagen_previa_seleccionada = ref<string | null>(null);
+const error_imagen = ref("");
+const imagen_previa = computed(() =>
+  imagen_previa_seleccionada.value ??
+  url_imagen_lote(props.lote?.imagenAvatar),
+);
+
+onMounted(async () => { voz_disponible.value = await dictado_disponible(); });
+
+async function dictar_descripcion() {
+  error_voz.value = "";
+  dictando.value = true;
+  try {
+    const transcripcion = await dictar_texto_largo();
+    formulario.descripcion = [formulario.descripcion.trim(), transcripcion].filter(Boolean).join(" ");
+    limpiar_error_campo("descripcion");
+  } catch (error) {
+    error_voz.value = error instanceof Error ? error.message : "No se pudo iniciar el dictado. Podés escribir con el teclado.";
+  } finally {
+    dictando.value = false;
+  }
+}
 const porcentaje_ahorro_calculado = computed(() => {
   const mercado = Number(formulario.precioMercado);
   const cupo = Number(formulario.precioCupo);
@@ -320,11 +400,43 @@ function limpiar_formulario() {
   formulario.fechaInicio = "";
   formulario.fechaFin = "";
   formulario.proveedorId = "";
+  limpiar_imagen_seleccionada();
 
   limpiar_errores();
 }
 
+function limpiar_imagen_seleccionada() {
+  if (imagen_previa_seleccionada.value) {
+    URL.revokeObjectURL(imagen_previa_seleccionada.value);
+  }
+  imagen_previa_seleccionada.value = null;
+  imagen_seleccionada.value = null;
+  error_imagen.value = "";
+}
+
+function seleccionar_imagen(evento: Event) {
+  const input = evento.target as HTMLInputElement;
+  const archivo = input.files?.[0];
+  if (!archivo) return;
+
+  if (!["image/jpeg", "image/png", "image/webp"].includes(archivo.type)) {
+    error_imagen.value = "Elegí una imagen JPG, PNG o WEBP.";
+    input.value = "";
+    return;
+  }
+  if (archivo.size > 5 * 1024 * 1024) {
+    error_imagen.value = "La imagen no puede superar los 5 MB.";
+    input.value = "";
+    return;
+  }
+
+  limpiar_imagen_seleccionada();
+  imagen_seleccionada.value = archivo;
+  imagen_previa_seleccionada.value = URL.createObjectURL(archivo);
+}
+
 function cargar_lote() {
+  limpiar_imagen_seleccionada();
   if (!props.lote) {
     limpiar_formulario();
     return;
@@ -478,21 +590,27 @@ function guardar() {
   }
 
   emit("guardar", {
-    nombre: formulario.nombre.trim(),
-    descripcion: formulario.descripcion.trim(),
-    categoria: formulario.categoria.trim(),
-    precioMercado: precio_mercado,
-    precioCupo: precio_cupo,
-    cantidadCupos: cantidad_cupos,
-    fechaInicio: formulario.fechaInicio,
-    fechaFin: formulario.fechaFin,
-    proveedorId: proveedor_id,
+    request: {
+      nombre: formulario.nombre.trim(),
+      descripcion: formulario.descripcion.trim(),
+      categoria: formulario.categoria.trim(),
+      precioMercado: precio_mercado,
+      precioCupo: precio_cupo,
+      cantidadCupos: cantidad_cupos,
+      fechaInicio: formulario.fechaInicio,
+      fechaFin: formulario.fechaFin,
+      proveedorId: proveedor_id,
+      imagenAvatar: props.lote?.imagenAvatar ?? null,
+    },
+    imagen: imagen_seleccionada.value,
   });
 }
 
 function cancelar() {
   emit("cancelar");
 }
+
+onBeforeUnmount(limpiar_imagen_seleccionada);
 </script>
 
 <style scoped>
@@ -534,6 +652,15 @@ function cancelar() {
   color: var(--syner-text-secondary);
   font-size: 13px;
 }
+
+.syner-lote-formulario__voz { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.syner-lote-formulario__voz span { color: var(--syner-text-secondary); font-size: 13px; }
+.syner-lote-formulario__image-label { display: grid; gap: 4px; color: var(--syner-text); font-size: 14px; font-weight: 650; }
+.syner-lote-formulario__image-label span { color: var(--syner-text-secondary); font-size: 12px; font-weight: 400; }
+.syner-lote-formulario__image-input { width: 100%; margin-top: 9px; padding: 11px; border: 1px dashed var(--syner-border); border-radius: 12px; background: var(--syner-surface); color: var(--syner-text-secondary); }
+.syner-lote-formulario__image-preview { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+.syner-lote-formulario__image-preview img { width: min(100%, 240px); height: 150px; border-radius: 14px; object-fit: cover; background: var(--syner-background); }
+.syner-lote-formulario__image-preview span { color: var(--syner-text-secondary); font-size: 13px; }
 
 .syner-lote-formulario__ahorro {
   display: flex;

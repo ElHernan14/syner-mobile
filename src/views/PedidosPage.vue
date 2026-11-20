@@ -47,6 +47,8 @@
             <span v-if="pedido.numeroSeguimiento">Seguimiento: {{ pedido.numeroSeguimiento }}</span>
             <span v-if="pedido.codigoEntrega">Código: {{ pedido.codigoEntrega }}</span>
           </div>
+          <ion-button fill="outline" size="small" @click="mostrar_qr(pedido.id)">Compartir registro público</ion-button>
+          <img v-if="qr_pedido_id === pedido.id && qr_url" class="syner-pedidos__qr" :src="qr_url" alt="QR del registro público del pedido" />
         </article>
       </div>
       <div v-if="usando_cache && hay_pedidos" class="syner-pedidos__cache">
@@ -57,10 +59,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 
-import { IonIcon } from "@ionic/vue";
+import { IonButton, IonIcon } from "@ionic/vue";
 
 import { receiptOutline } from "ionicons/icons";
 
@@ -71,11 +73,18 @@ import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 
 import { usePedidos } from "@/composables/usePedidos";
 import { useAuthStore } from "@/stores/auth_store";
+import { obtener_blob } from "@/services/ajax_service";
 
 const route = useRoute();
 const { pedidos, cargando, error, hay_pedidos, usando_cache, cargar_pedidos } = usePedidos();
 const auth = useAuthStore();
 const es_admin = computed(() => auth.rol === "admin");
+const qr_url = ref(""); const qr_pedido_id = ref("");
+async function mostrar_qr(id: string) {
+  const blob = await obtener_blob(`pedidos/${id}/qr`);
+  if (qr_url.value) URL.revokeObjectURL(qr_url.value);
+  qr_url.value = URL.createObjectURL(blob); qr_pedido_id.value = id;
+}
 function moneda(valor: number): string { return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(valor); }
 const pedido_id = computed(() => {
   const id = Number(route.query.pedidoId);
@@ -123,6 +132,7 @@ watch(() => route.query.pedidoId, () => {
 .syner-pedidos__ahorro { display: flex; justify-content: space-between; margin-top: 14px; padding: 11px 13px; border-radius: 12px; background: color-mix(in srgb, var(--syner-success) 10%, transparent); color: var(--syner-success); }
 .syner-pedidos__metadata { display: grid; gap: 6px; margin-top: 14px; }
 .syner-pedidos__cache { margin-bottom: 14px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--ion-color-warning) 13%, transparent); color: var(--syner-text); font-size: 13px; }
+.syner-pedidos__qr { display:block; width:180px; height:180px; padding:8px; border-radius:14px; background:#fff; }
 
 .syner-pedidos__error,
 .syner-pedidos__empty {

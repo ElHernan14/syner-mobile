@@ -27,6 +27,7 @@ export interface Lote {
   fechaInicio: string;
   fechaFin: string;
   estado: EstadoLote;
+  imagenAvatar?: string | null;
   proveedorId: number;
   proveedor: ProveedorLote;
 }

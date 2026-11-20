@@ -9,10 +9,10 @@ if (keystorePropertiesFile.exists()) {
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.example.app"
+    namespace = "com.syner.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.example.app"
+        applicationId "com.syner.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -68,6 +68,7 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
     implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.android.gms:play-services-auth:21.4.0'
 }
 
 apply from: 'capacitor.build.gradle'

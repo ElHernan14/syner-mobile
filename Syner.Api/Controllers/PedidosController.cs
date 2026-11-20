@@ -9,6 +9,7 @@ using Syner.Api.Domain.DTOs.Pedidos;
 using Syner.Api.Domain.Enums;
 using Syner.Api.Domain.States;
 using Syner.Api.Services.Notificaciones;
+using Syner.Api.Services.Lotes;
 
 namespace Syner.Api.Controllers;
 
@@ -20,15 +21,21 @@ public sealed class PedidosController : ControllerBase
     private readonly SynerDbContext _db;
     private readonly NotificacionService _notificacion_service;
     private readonly NotificacionPushService _notificacion_push_service;
+    private readonly IWebHostEnvironment _environment;
+    private readonly LoteQrService _qr_service;
 
     public PedidosController(
         SynerDbContext db,
         NotificacionService notificacion_service,
-        NotificacionPushService notificacion_push_service)
+        NotificacionPushService notificacion_push_service,
+        IWebHostEnvironment environment,
+        LoteQrService qr_service)
     {
         _db = db;
         _notificacion_service = notificacion_service;
         _notificacion_push_service = notificacion_push_service;
+        _environment = environment;
+        _qr_service = qr_service;
     }
 
     [HttpGet]
@@ -304,7 +311,7 @@ public sealed class PedidosController : ControllerBase
     [HttpPost("cupo")]
     [Authorize(Roles = "usuario")]
     public async Task<IActionResult> AdquirirCupo(
-        CrearPedidoCupoRequest request,
+        [FromForm] CrearPedidoCupoRequest request,
         CancellationToken cancellationToken)
     {
         var validacionModelState = ValidadorModelState.Validar(ModelState);
@@ -409,9 +416,19 @@ public sealed class PedidosController : ControllerBase
             );
         }
 
+        await using (var validacionFirma = request.Firma!.OpenReadStream())
+        {
+            var cabecera = new byte[8];
+            var leidos = await validacionFirma.ReadAsync(cabecera, cancellationToken);
+            var cabeceraPng = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+            if (leidos != cabecera.Length || !cabecera.SequenceEqual(cabeceraPng))
+                return RespuestaHttp.BadRequest<object>(this, "La firma enviada no es un archivo PNG válido.");
+        }
+
         await using var transaccion = await _db.Database
         .BeginTransactionAsync(cancellationToken);
 
+        string? rutaArchivoFirma = null;
         try
         {
             var cupoActualizado = await _db.Lotes
@@ -444,6 +461,18 @@ public sealed class PedidosController : ControllerBase
                     .ToString()
                     .ToLowerInvariant()
             };
+
+            var directorioFirmas = Path.Combine(_environment.ContentRootPath, "App_Data", "firmas_pedidos");
+            Directory.CreateDirectory(directorioFirmas);
+            var nombreFirma = $"{Guid.NewGuid():N}.png";
+            var rutaFirma = Path.Combine(directorioFirmas, nombreFirma);
+            rutaArchivoFirma = rutaFirma;
+            await using (var firmaStream = request.Firma!.OpenReadStream())
+            await using (var archivoStream = new FileStream(rutaFirma, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                await firmaStream.CopyToAsync(archivoStream, cancellationToken);
+            }
+            pedido.FirmaPath = $"firmas_pedidos/{nombreFirma}";
 
             _db.Pedidos.Add(pedido);
 
@@ -533,8 +562,31 @@ public sealed class PedidosController : ControllerBase
         catch
         {
             await transaccion.RollbackAsync(cancellationToken);
+            if (rutaArchivoFirma is not null && System.IO.File.Exists(rutaArchivoFirma)) System.IO.File.Delete(rutaArchivoFirma);
             throw;
         }
+    }
+
+    [HttpGet("{id:long}/firma")]
+    public async Task<IActionResult> ObtenerFirma(long id, CancellationToken cancellationToken)
+    {
+        var pedido = await _db.Pedidos.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (pedido is null || string.IsNullOrWhiteSpace(pedido.FirmaPath)) return NotFound();
+        var usuarioId = ObtenerUsuarioId();
+        if (!User.IsInRole("admin") && usuarioId != pedido.UsuarioId) return Forbid();
+        var ruta = Path.Combine(_environment.ContentRootPath, "App_Data", pedido.FirmaPath.Replace('/', Path.DirectorySeparatorChar));
+        if (!System.IO.File.Exists(ruta)) return NotFound();
+        return PhysicalFile(ruta, "image/png", enableRangeProcessing: false);
+    }
+
+    [HttpGet("{id:long}/qr")]
+    public async Task<IActionResult> ObtenerQrPublico(long id, CancellationToken cancellationToken)
+    {
+        var pedido = await _db.Pedidos.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (pedido is null) return NotFound();
+        var usuario_id = ObtenerUsuarioId();
+        if (!User.IsInRole("admin") && usuario_id != pedido.UsuarioId) return Forbid();
+        return File(_qr_service.GenerarPedido(pedido.TokenPublico), "image/png", $"syner-pedido-{id}.png");
     }
 
     [HttpGet("{id:long}")]

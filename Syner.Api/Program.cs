@@ -12,6 +12,7 @@ using Syner.Api.Services;
 using QuestPDF.Infrastructure;
 using Syner.Api.Services.Lotes;
 using Syner.Api.Services.Notificaciones;
+using Syner.Api.Services.Archivos;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Syner.Api.Firebase;
@@ -152,6 +153,16 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<LotePdfService>();
 builder.Services.AddScoped<LoteQrService>();
+builder.Services.AddScoped<HistorialLoteService>();
+builder.Services
+    .AddOptions<SupabaseStorageOptions>()
+    .BindConfiguration(SupabaseStorageOptions.SectionName)
+    .Validate(
+        options => options.IsValid(),
+        "La configuración de Supabase Storage está incompleta o no es válida."
+    )
+    .ValidateOnStart();
+builder.Services.AddHttpClient<IAlmacenamientoImagenesService, AlmacenamientoImagenesService>();
 builder.Services.AddScoped<NotificacionService>();
 builder.Services.AddSingleton(sp => new FirebasePushService(
     firebaseApp,

@@ -27,6 +27,8 @@ public sealed class SynerDbContext : DbContext
 
     public DbSet<Dispositivo> Dispositivos => Set<Dispositivo>();
 
+    public DbSet<HistorialLote> HistorialLotes => Set<HistorialLote>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

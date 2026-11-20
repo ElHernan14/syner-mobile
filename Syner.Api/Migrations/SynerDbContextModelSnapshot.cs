@@ -59,6 +59,42 @@ namespace Syner.Api.Migrations
                     b.ToTable("dispositivos", (string)null);
                 });
 
+            modelBuilder.Entity("Syner.Api.Domain.Entities.HistorialLote", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("EstadoAnterior")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("FechaModificacion")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("LoteId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("NuevoEstado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<long>("UsuarioId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("LoteId", "FechaModificacion");
+
+                    b.ToTable("historial_lotes", (string)null);
+                });
+
             modelBuilder.Entity("Syner.Api.Domain.Entities.Lote", b =>
                 {
                     b.Property<long>("Id")
@@ -93,6 +129,10 @@ namespace Syner.Api.Migrations
 
                     b.Property<DateTime>("FechaInicio")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ImagenAvatar")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -186,6 +226,10 @@ namespace Syner.Api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("FirmaPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<long>("LoteId")
                         .HasColumnType("bigint");
 
@@ -193,12 +237,20 @@ namespace Syner.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<string>("TokenPublico")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
                     b.Property<long>("UsuarioId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("LoteId");
+
+                    b.HasIndex("TokenPublico")
+                        .IsUnique();
 
                     b.HasIndex("UsuarioId");
 
@@ -217,6 +269,14 @@ namespace Syner.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
+
+                    b.Property<decimal?>("Latitud")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("decimal(10,7)");
+
+                    b.Property<decimal?>("Longitud")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("decimal(10,7)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -357,6 +417,25 @@ namespace Syner.Api.Migrations
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("Syner.Api.Domain.Entities.HistorialLote", b =>
+                {
+                    b.HasOne("Syner.Api.Domain.Entities.Lote", "Lote")
+                        .WithMany()
+                        .HasForeignKey("LoteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Syner.Api.Domain.Entities.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lote");
 
                     b.Navigation("Usuario");
                 });

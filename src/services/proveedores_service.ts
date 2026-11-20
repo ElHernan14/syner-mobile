@@ -18,6 +18,8 @@ interface ProveedorApi {
   nombre: string;
   descripcion: string;
   verificado: boolean;
+  latitud?: number | null;
+  longitud?: number | null;
 }
 
 export async function obtener_proveedores(): Promise<Proveedor[]> {
@@ -28,6 +30,8 @@ export async function obtener_proveedores(): Promise<Proveedor[]> {
     nombre: proveedor.nombre,
     descripcion: proveedor.descripcion,
     verificado: proveedor.verificado,
+    latitud: proveedor.latitud ?? null,
+    longitud: proveedor.longitud ?? null,
   }));
   try {
     localStorage.setItem(CLAVE_CACHE_PROVEEDORES, JSON.stringify(proveedores));

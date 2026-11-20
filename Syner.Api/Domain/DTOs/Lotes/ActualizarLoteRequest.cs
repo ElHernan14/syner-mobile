@@ -35,6 +35,9 @@ public sealed class ActualizarLoteRequest : IValidable
     [Required(ErrorMessage = "El proveedor es obligatorio.")]
     public int ProveedorId { get; set; }
 
+    [MaxLength(500, ErrorMessage = "La ruta de la imagen no puede superar los 500 caracteres.")]
+    public string? ImagenAvatar { get; set; }
+
     public ResultadoValidacion Validar()
     {
         return ValidadorDto.Validar(this);

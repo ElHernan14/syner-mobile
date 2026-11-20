@@ -9,6 +9,8 @@ import LoginPage from "@/views/LoginPage.vue";
 import LoteDetallePage from "@/views/LoteDetallePage.vue";
 
 import { useAuthStore } from "@/stores/auth_store";
+import PublicoLotesPage from "@/views/PublicoLotesPage.vue";
+import PedidoPublicoPage from "@/views/PedidoPublicoPage.vue";
 
 const routes = [
   {
@@ -24,6 +26,8 @@ const routes = [
       publico: true,
     },
   },
+  { path: "/catalogo", component: PublicoLotesPage, name: "catalogo-publico", meta: { publico: true } },
+  { path: "/p/:token", component: PedidoPublicoPage, name: "pedido-publico", meta: { publico: true } },
 
   {
     path: "/app",

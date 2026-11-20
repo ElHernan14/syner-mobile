@@ -7,6 +7,7 @@ import type { LoginRequest } from "@/models/auth";
 import type { Usuario } from "@/models/usuario";
 
 import { iniciar_sesion, refrescar_sesion } from "@/services/auth_service";
+import { iniciar_sesion_google } from "@/services/google_auth_service";
 import { es_error_conexion } from "@/services/ajax_service";
 
 import {
@@ -218,6 +219,28 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  async function iniciar_sesion_google_store() {
+    cargando.value = true;
+    error.value = null;
+    try {
+      const respuesta = await iniciar_sesion_google();
+      if (!respuesta.exito || !respuesta.datos) throw new Error(respuesta.mensaje || "No se pudo iniciar sesión con Google.");
+      const datos = respuesta.datos;
+      const usuario_normalizado = { ...datos.usuario, id: String(datos.usuario.id) };
+      access_token.value = datos.accessToken;
+      refresh_token.value = datos.refreshToken;
+      usuario.value = usuario_normalizado;
+      sesion_offline.value = false;
+      guardar_sesion(datos.accessToken, datos.refreshToken, usuario_normalizado, biometria_activa.value);
+      await registrar_push_despues_autenticacion();
+      return respuesta;
+    } catch (err) {
+      const mensaje = obtener_mensaje_error(err, "No se pudo iniciar sesión con Google.");
+      error.value = mensaje;
+      throw new Error(mensaje);
+    } finally { cargando.value = false; }
+  }
+
   async function refrescar_sesion_store() {
     if (!refresh_token.value) {
       throw new Error("No existe un refresh token.");
@@ -426,6 +449,7 @@ export const useAuthStore = defineStore("auth", () => {
     biometria_activa,
     sesion_offline,
     iniciar_sesion: iniciar_sesion_store,
+    iniciar_sesion_google: iniciar_sesion_google_store,
     refrescar_sesion: refrescar_sesion_store,
     cerrar_sesion,
     actualizar_avatar_local,

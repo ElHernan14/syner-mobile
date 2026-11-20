@@ -1,5 +1,12 @@
 <template>
   <ion-card class="syner-lote-card">
+    <img
+      v-if="imagen_url"
+      class="syner-lote-card__image"
+      :src="imagen_url"
+      :alt="`Imagen del lote ${lote.nombre}`"
+      loading="lazy"
+    />
     <ion-card-header>
       <div class="syner-lote-card__header">
         <div>
@@ -100,6 +107,7 @@ import {
 
 import type { Lote } from "@/models/LoteModel";
 import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
+import { url_imagen_lote } from "@/services/lotes_service";
 
 const props = defineProps<{
   lote: Lote;
@@ -118,6 +126,8 @@ const progreso = computed(() => {
 
   return Math.min(props.lote.cuposOcupados / props.lote.cantidadCupos, 1);
 });
+
+const imagen_url = computed(() => url_imagen_lote(props.lote.imagenAvatar));
 
 const fecha_fin = computed(() => {
   return new Date(props.lote.fechaFin).toLocaleDateString("es-AR");
@@ -145,6 +155,8 @@ const puede_eliminar = computed(() => {
   border-radius: 18px;
   overflow: hidden;
 }
+
+.syner-lote-card__image { display: block; width: 100%; max-height: 220px; object-fit: cover; background: var(--syner-background); }
 
 .syner-lote-card__header {
   display: flex;

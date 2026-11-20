@@ -8,4 +8,5 @@ export interface ActualizarLoteRequest {
   fechaInicio: string;
   fechaFin: string;
   proveedorId: number;
+  imagenAvatar?: string | null;
 }

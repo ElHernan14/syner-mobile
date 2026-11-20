@@ -28,4 +28,12 @@ public sealed class LoteQrService
     {
         return $"{UrlBase}/{lote_id}";
     }
+
+    public byte[] GenerarPedido(string token_publico)
+    {
+        var contenido = $"https://syner-api.runasp.net/p/{token_publico}";
+        using var generador = new QRCodeGenerator();
+        using var datos = generador.CreateQrCode(contenido, QRCodeGenerator.ECCLevel.Q);
+        return new PngByteQRCode(datos).GetGraphic(10);
+    }
 }
