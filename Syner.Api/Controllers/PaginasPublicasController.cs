@@ -65,6 +65,7 @@ public sealed class PaginasPublicasController : Controller
                 header p{margin:0;color:#e5efff}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;margin:24px 0}
                 article{display:flex;flex-direction:column;gap:10px;padding:20px;border:1px solid #e3eaf3;border-radius:20px;background:#fff;box-shadow:0 12px 32px #15335a13}
                 article small,footer{color:#66758c}article h2,article p{margin:0}article h2{font-size:21px}
+                article img{width:calc(100% + 40px);height:190px;margin:-20px -20px 4px;object-fit:cover;border-radius:20px 20px 0 0;background:#e9eef5}
                 article strong{font-size:24px}article s{color:#78859a}.verified,.saving{color:#14845d;font-weight:700}
                 footer{margin-top:auto;font-size:13px}.privacy{color:#2469bd}
                 .message{padding:18px;border-radius:14px;background:#fff;color:#66758c}
@@ -91,23 +92,25 @@ public sealed class PaginasPublicasController : Controller
                     const categoria = document.createElement("small");
                     categoria.textContent = lote.categoria + " · " + lote.proveedor + (lote.proveedor_verificado ? " · ✓ Verificado" : "");
                     if (lote.proveedor_verificado) categoria.className = "verified";
+                    let urlImagen = new URL("/assets/lote-default.webp", window.location.origin);
                     if (lote.imagen_avatar) {
-                      let urlImagen = null;
                       try {
                         const url = new URL(lote.imagen_avatar, window.location.origin);
                         if (url.protocol === "https:" || url.origin === window.location.origin) urlImagen = url;
                       } catch (error) {
                         console.warn("Se omitió una URL de imagen de lote no válida.", error);
                       }
-                      if (urlImagen) {
-                        const imagen = document.createElement("img");
-                        imagen.src = urlImagen.href;
-                        imagen.alt = "Imagen del lote " + lote.nombre;
-                        imagen.loading = "lazy";
-                        imagen.style.cssText = "width:calc(100% + 40px);height:190px;margin:-20px -20px 4px;object-fit:cover;border-radius:20px 20px 0 0;background:#e9eef5";
-                        tarjeta.append(imagen);
-                      }
                     }
+                    const imagen = document.createElement("img");
+                    imagen.src = urlImagen.href;
+                    imagen.alt = "Imagen del lote " + lote.nombre;
+                    imagen.loading = "lazy";
+                    imagen.onerror = () => {
+                      if (!imagen.src.endsWith("/assets/lote-default.webp")) {
+                        imagen.src = "/assets/lote-default.webp";
+                      }
+                    };
+                    tarjeta.append(imagen);
                     const nombre = document.createElement("h2"); nombre.textContent = lote.nombre;
                     const descripcion = document.createElement("p"); descripcion.textContent = lote.descripcion;
                     const precio = document.createElement("strong"); precio.textContent = moneda(lote.precio_cupo);

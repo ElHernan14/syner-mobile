@@ -37,7 +37,8 @@ interface LoteApi {
   fecha_fin: string;
   estado: EstadoLote;
   imagen_avatar?: string | null;
-  proveedor: ProveedorApi;
+  proveedor_id?: number;
+  proveedor?: ProveedorApi | null;
 }
 
 interface LoteResponseApi {
@@ -77,12 +78,7 @@ interface LoteDetalleApi {
 }
 
 function mapearLoteDetalle(lote: LoteDetalleApi): Lote {
-  const proveedor: ProveedorApi = lote.proveedor ?? {
-    id: lote.proveedorId,
-    nombre: "",
-    descripcion: "",
-    verificado: false,
-  };
+  const proveedor = mapearProveedorLote(lote.proveedor, lote.proveedorId);
 
   return {
     id: lote.id,
@@ -139,7 +135,26 @@ function mapearProveedor(proveedor: ProveedorApi): ProveedorApi {
   };
 }
 
+function mapearProveedorLote(
+  proveedor: ProveedorApi | null | undefined,
+  proveedor_id: number | undefined,
+): ProveedorApi {
+  const id = proveedor?.id && proveedor.id > 0 ? proveedor.id : proveedor_id;
+  if (!Number.isInteger(id) || id === undefined || id <= 0) {
+    throw new Error("La API devolvió un lote sin un proveedor válido.");
+  }
+  const proveedor_valido = proveedor?.id === id ? proveedor : {
+    id,
+    nombre: `Proveedor #${id}`,
+    descripcion: "",
+    verificado: false,
+  };
+  return mapearProveedor(proveedor_valido);
+}
+
 function mapearLote(lote: LoteApi): Lote {
+  const proveedor = mapearProveedorLote(lote.proveedor, lote.proveedor_id);
+
   return {
     id: lote.id,
     nombre: lote.nombre,
@@ -154,18 +169,13 @@ function mapearLote(lote: LoteApi): Lote {
     fechaFin: lote.fecha_fin,
     estado: lote.estado,
     imagenAvatar: lote.imagen_avatar ?? null,
-    proveedorId: lote.proveedor.id,
-    proveedor: mapearProveedor(lote.proveedor),
+    proveedorId: proveedor.id,
+    proveedor: mapearProveedor(proveedor),
   };
 }
 
 function mapearRespuesta(lote: LoteResponseApi): Lote {
-  const proveedor: ProveedorApi = lote.proveedor ?? {
-    id: lote.proveedor_id,
-    nombre: "",
-    descripcion: "",
-    verificado: false,
-  };
+  const proveedor = mapearProveedorLote(lote.proveedor, lote.proveedor_id);
 
   return {
     id: lote.id,
@@ -283,6 +293,10 @@ function validarRequestLote(
 
 function manejarError(error: unknown): never {
   if (error instanceof ApiError) {
+    if (error.status === 502 && error.message.trim()) {
+      throw new Error(error.message);
+    }
+
     if (error.status >= 500) {
       throw new Error(
         "Ocurrió un error interno en el servidor. Intentá nuevamente.",
@@ -378,7 +392,11 @@ export async function subir_imagen_lote(imagen: File): Promise<string> {
       "lotes/imagen-avatar",
       formData,
     );
-    return obtenerDatos(respuesta).imagen_avatar;
+    const imagen_avatar = obtenerDatos(respuesta).imagen_avatar;
+    if (typeof imagen_avatar !== "string" || !imagen_avatar.trim()) {
+      throw new Error("La API no devolvió la ruta de la imagen subida.");
+    }
+    return imagen_avatar;
   } catch (error) {
     return manejarError(error);
   }

@@ -1,3 +1,6 @@
 firebase/service-account.json
 
-wwwroot/
+wwwroot/*
+!wwwroot/assets/
+wwwroot/assets/*
+!wwwroot/assets/lote-default.webp

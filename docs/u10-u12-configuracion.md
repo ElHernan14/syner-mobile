@@ -6,8 +6,12 @@ El esquema EF ya incluye `Proveedor.Latitud` y `Proveedor.Longitud`, pero la
 migración U11/U12 no agrega esas columnas: se agregan manualmente como pide la
 actividad. Ejecutá el `ALTER TABLE proveedores` de
 [u10-u12-publicacion.sql](./u10-u12-publicacion.sql) en la base publicada y
-revisá los IDs con el `SELECT` incluido. Las coordenadas reales aún no están en
-el repositorio; no se deben completar con ubicaciones inventadas.
+revisá los IDs con el `SELECT` incluido. Como todavía no se conocen las
+ubicaciones reales, el SQL incluye puntos sintéticos dentro de San Luis para
+probar el mapa. No son domicilios de los proveedores ni deben presentarse como
+tales. Como las columnas ya se agregaron en la base publicada, ejecutá
+únicamente los tres `UPDATE` del final del SQL; no vuelvas a ejecutar los
+`ALTER TABLE`.
 
 ## U12: imágenes de lotes
 

@@ -1,4 +1,4 @@
-import { obtener, crear_form_data } from "@/services/ajax_service";
+import { obtener, obtener_blob, crear_form_data } from "@/services/ajax_service";
 
 import type { ApiResponse } from "@/models/api_response";
 import type { ResultadoPaginado } from "@/models/paginacion";
@@ -112,4 +112,11 @@ export async function adquirir_cupo(
   form.append("loteId", String(lote_id));
   form.append("firma", firma, "firma-conformidad.png");
   return crear_form_data<CrearPedidoCupoResponse>("pedidos/cupo", form);
+}
+
+export async function obtener_firma_pedido(pedido_id: string): Promise<Blob> {
+  if (!/^\d+$/.test(pedido_id)) {
+    throw new Error("El identificador del pedido no es válido.");
+  }
+  return obtener_blob(`pedidos/${pedido_id}/firma`);
 }

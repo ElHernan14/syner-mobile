@@ -1,6 +1,44 @@
 @Syner.Api_HostAddress = http://localhost:5131
+@accessToken = REEMPLAZAR_POR_ACCESS_TOKEN
 
 GET {{Syner.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Consultar la dirección del usuario autenticado
+GET {{Syner.Api_HostAddress}}/api/direcciones/mi-direccion
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Crear dirección principal del usuario autenticado
+POST {{Syner.Api_HostAddress}}/api/direcciones
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "calle": "Avenida Siempreviva",
+  "numero": "742",
+  "ciudad": "San Luis",
+  "provincia": "San Luis",
+  "codigoPostal": "5700",
+  "referencia": "Frente a la plaza",
+  "latitud": -33.3017000,
+  "longitud": -66.3378000
+}
+
+### Actualizar dirección principal del usuario autenticado
+PUT {{Syner.Api_HostAddress}}/api/direcciones/mi-direccion
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "calle": "Avenida Siempreviva",
+  "numero": "742",
+  "ciudad": "San Luis",
+  "provincia": "San Luis",
+  "codigoPostal": "5700",
+  "referencia": "Acceso por calle lateral",
+  "latitud": -33.3017000,
+  "longitud": -66.3378000
+}

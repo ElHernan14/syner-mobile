@@ -141,6 +141,7 @@ public sealed class LotesController : ControllerBase
                 fecha_fin = lote.FechaFin,
                 estado = lote.Estado,
                 imagen_avatar = lote.ImagenAvatar,
+                proveedor_id = lote.ProveedorId,
                 proveedor = new
                 {
                     id = lote.Proveedor.Id,
@@ -167,6 +168,8 @@ public sealed class LotesController : ControllerBase
             lote.fecha_inicio,
             lote.fecha_fin,
             lote.estado,
+            lote.imagen_avatar,
+            lote.proveedor_id,
             lote.proveedor
         }).ToList();
 
@@ -217,13 +220,21 @@ public sealed class LotesController : ControllerBase
         }
 
         // Validación de existencia del proveedor
-        var proveedorExiste = await _db.Proveedores
-            .AnyAsync(
-                proveedor => proveedor.Id == request.ProveedorId,
-                cancellationToken
-            );
+        var proveedor = await _db.Proveedores
+            .AsNoTracking()
+            .Where(proveedor => proveedor.Id == request.ProveedorId)
+            .Select(proveedor => new
+            {
+                id = proveedor.Id,
+                nombre = proveedor.Nombre,
+                descripcion = proveedor.Descripcion,
+                verificado = proveedor.Verificado,
+                latitud = proveedor.Latitud,
+                longitud = proveedor.Longitud
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (!proveedorExiste)
+        if (proveedor is null)
         {
             return RespuestaHttp.BadRequest<object>(
                 this,
@@ -291,9 +302,7 @@ public sealed class LotesController : ControllerBase
                 estado = lote.Estado,
                 imagen_avatar = lote.ImagenAvatar,
                 proveedor_id = lote.ProveedorId,
-                proveedor = _db.Proveedores.AsNoTracking().Where(p => p.Id == lote.ProveedorId)
-                    .Select(p => new { id = p.Id, nombre = p.Nombre, descripcion = p.Descripcion, verificado = p.Verificado })
-                    .FirstOrDefault()
+                proveedor
             },
             nameof(ObtenerPorId),
             new { id = lote.Id }
@@ -430,13 +439,21 @@ public sealed class LotesController : ControllerBase
         }
 
         // Validación del proveedor
-        var proveedorExiste = await _db.Proveedores
-            .AnyAsync(
-                proveedor => proveedor.Id == request.ProveedorId,
-                cancellationToken
-            );
+        var proveedor = await _db.Proveedores
+            .AsNoTracking()
+            .Where(proveedor => proveedor.Id == request.ProveedorId)
+            .Select(proveedor => new
+            {
+                id = proveedor.Id,
+                nombre = proveedor.Nombre,
+                descripcion = proveedor.Descripcion,
+                verificado = proveedor.Verificado,
+                latitud = proveedor.Latitud,
+                longitud = proveedor.Longitud
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (!proveedorExiste)
+        if (proveedor is null)
         {
             return RespuestaHttp.BadRequest<object>(
                 this,
@@ -503,7 +520,8 @@ public sealed class LotesController : ControllerBase
             fecha_fin = lote.FechaFin,
             estado = lote.Estado,
             imagen_avatar = lote.ImagenAvatar,
-            proveedor_id = lote.ProveedorId
+            proveedor_id = lote.ProveedorId,
+            proveedor
         };
 
         return RespuestaHttp.Ok(

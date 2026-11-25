@@ -98,6 +98,7 @@
               Imagen del lote <span>Opcional · JPG, PNG o WEBP · máximo 5 MB</span>
             </label>
             <input
+              ref="input_imagen_ref"
               id="lote-imagen-avatar"
               class="syner-lote-formulario__image-input"
               type="file"
@@ -363,6 +364,7 @@ const error_voz = ref("");
 const imagen_seleccionada = ref<File | null>(null);
 const imagen_previa_seleccionada = ref<string | null>(null);
 const error_imagen = ref("");
+const input_imagen_ref = ref<HTMLInputElement | null>(null);
 const imagen_previa = computed(() =>
   imagen_previa_seleccionada.value ??
   url_imagen_lote(props.lote?.imagenAvatar),
@@ -406,6 +408,9 @@ function limpiar_formulario() {
 }
 
 function limpiar_imagen_seleccionada() {
+  if (input_imagen_ref.value) {
+    input_imagen_ref.value.value = "";
+  }
   if (imagen_previa_seleccionada.value) {
     URL.revokeObjectURL(imagen_previa_seleccionada.value);
   }

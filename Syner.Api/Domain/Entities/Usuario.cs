@@ -18,6 +18,7 @@ public sealed class Usuario : EntityBase
         = new List<Notificacion>();
 
     public ICollection<Dispositivo> Dispositivos { get; set; } = [];
+    public ICollection<Direccion> Direcciones { get; set; } = [];
 
     public string? Avatar { get; set; }
 }

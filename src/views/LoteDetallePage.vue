@@ -29,6 +29,12 @@
       />
 
       <template v-else-if="lote">
+        <img
+          class="syner-lote-detalle__imagen"
+          :src="url_imagen_lote(lote.imagenAvatar) ?? '/assets/lote-default.webp'"
+          :alt="`Imagen del lote ${lote.nombre}`"
+          @error="usar_imagen_respaldo"
+        />
         <div class="syner-lote-detalle__header">
           <div>
             <span class="syner-lote-detalle__categoria">
@@ -126,7 +132,7 @@ import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
 
-import { obtener_lote } from "@/services/lotes_service";
+import { obtener_lote, url_imagen_lote } from "@/services/lotes_service";
 
 const route = useRoute();
 
@@ -135,6 +141,14 @@ const cargando = ref(false);
 const error = ref<string | null>(null);
 
 const lote = ref<Awaited<ReturnType<typeof obtener_lote>> | null>(null);
+const IMAGEN_LOTE_DEFAULT = "/assets/lote-default.webp";
+
+function usar_imagen_respaldo(evento: Event) {
+  const imagen = evento.currentTarget;
+  if (imagen instanceof HTMLImageElement && !imagen.src.endsWith(IMAGEN_LOTE_DEFAULT)) {
+    imagen.src = IMAGEN_LOTE_DEFAULT;
+  }
+}
 
 const lote_id = computed(() => {
   const id = Number(route.params.id);
@@ -208,6 +222,16 @@ onMounted(() => {
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 20px;
+}
+
+.syner-lote-detalle__imagen {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  margin-bottom: 20px;
+  border-radius: 20px;
+  background: var(--syner-background);
+  object-fit: cover;
 }
 
 .syner-lote-detalle__categoria {

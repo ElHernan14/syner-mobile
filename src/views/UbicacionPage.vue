@@ -15,14 +15,14 @@
         <ion-button type="submit" :disabled="buscando || !direccion_busqueda.trim()"><ion-icon slot="start" :icon="searchOutline" />{{ buscando ? "Buscando…" : "Buscar" }}</ion-button>
       </form>
 
-      <comp-mapa-osm v-if="mapa_visible" :latitud="centro.latitud" :longitud="centro.longitud" @mover="mover_centro" />
+      <comp-mapa-osm v-if="mapa_visible" :latitud="centro.latitud" :longitud="centro.longitud" :marcador-fijo="es_ubicacion_proveedor" @mover="mover_centro" />
       <comp-estado-listado v-else tipo="vacio" titulo="Ubicación todavía no cargada" mensaje="Este proveedor no tiene coordenadas registradas. Un administrador puede cargarlas en la base para mostrar su punto en el mapa." />
 
-      <div v-if="!es_ubicacion_proveedor || mapa_visible" class="syner-ubicacion__acciones">
-        <ion-button v-if="!es_ubicacion_proveedor" fill="outline" @click="usar_ubicacion_actual" :disabled="cargando_gps">
+      <div v-if="!es_ubicacion_proveedor" class="syner-ubicacion__acciones">
+        <ion-button fill="outline" @click="usar_ubicacion_actual" :disabled="cargando_gps">
           <ion-spinner v-if="cargando_gps" slot="start" name="crescent" /><ion-icon v-else slot="start" :icon="locateOutline" />{{ cargando_gps ? "Localizando…" : "Usar mi ubicación" }}
         </ion-button>
-        <ion-button fill="outline" @click="confirmar_punto" :disabled="buscando || !mapa_visible">{{ es_ubicacion_proveedor ? "Actualizar dirección del punto" : "Confirmar punto" }}</ion-button>
+        <ion-button fill="outline" @click="confirmar_punto" :disabled="buscando || !mapa_visible">Usar esta ubicación</ion-button>
       </div>
 
       <div v-if="ubicacion_confirmada" class="syner-ubicacion__resultado">
@@ -32,23 +32,77 @@
       <p v-if="mensaje" class="syner-ubicacion__mensaje" :class="{ 'syner-ubicacion__mensaje--error': es_error }" role="status">{{ mensaje }}</p>
       <p class="syner-ubicacion__atribucion">El mapa usa OpenStreetMap. Arrastrá el mapa o pellizcá para mover y acercar el punto.</p>
     </div>
+
+    <ion-modal :is-open="modal_direccion_abierto" @did-dismiss="cerrar_modal_direccion">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Datos de tu dirección</ion-title>
+          <ion-buttons slot="end">
+            <ion-button :disabled="guardando_direccion" @click="cerrar_modal_direccion">Cerrar</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <form class="syner-ubicacion__formulario" @submit.prevent="guardar_direccion">
+          <p>Completá la dirección asociada al punto seleccionado. Las coordenadas también se guardarán.</p>
+          <ion-input v-model="formulario_direccion.calle" label="Calle" label-placement="stacked" fill="outline" required :maxlength="150" />
+          <ion-input v-model="formulario_direccion.numero" label="Número" label-placement="stacked" fill="outline" required :maxlength="20" />
+          <ion-input v-model="formulario_direccion.ciudad" label="Ciudad" label-placement="stacked" fill="outline" required :maxlength="100" />
+          <ion-input v-model="formulario_direccion.provincia" label="Provincia" label-placement="stacked" fill="outline" required :maxlength="100" />
+          <ion-input v-model="formulario_direccion.codigoPostal" label="Código postal" label-placement="stacked" fill="outline" required :maxlength="20" />
+          <ion-textarea v-model="formulario_direccion.referencia" label="Referencia (opcional)" label-placement="stacked" fill="outline" :maxlength="255" auto-grow />
+          <p class="syner-ubicacion__coordenadas">
+            Punto: {{ centro.latitud.toFixed(6) }}, {{ centro.longitud.toFixed(6) }}
+          </p>
+          <ion-button type="submit" expand="block" :disabled="guardando_direccion">
+            <ion-spinner v-if="guardando_direccion" slot="start" />
+            {{ direccion_existente ? "Actualizar dirección" : "Guardar dirección" }}
+          </ion-button>
+        </form>
+      </ion-content>
+    </ion-modal>
   </comp-page>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { IonButton, IonIcon, IonInput, IonSpinner } from "@ionic/vue";
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonModal, IonSpinner, IonTextarea, IonTitle, IonToolbar, onIonViewWillEnter } from "@ionic/vue";
 import { locateOutline, locationOutline, searchOutline } from "ionicons/icons";
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
 import CompMapaOsm from "@/components/ubicacion/comp_mapa_osm.vue";
 import { obtener_ubicacion_actual } from "@/services/geolocalizacion_service";
+import { hay_conexion } from "@/services/conectividad_service";
+import { useAuthStore } from "@/stores/auth_store";
+import type { Direccion, GuardarDireccionRequest } from "@/models/direccion";
+import {
+  actualizar_cache_direccion,
+  actualizar_direccion,
+  crear_direccion,
+  obtener_direccion_cache,
+  obtener_mi_direccion,
+} from "@/services/direcciones_service";
 
 interface Punto { latitud: number; longitud: number }
 interface UbicacionConfirmada extends Punto { direccion: string }
-interface ResultadoNominatim { lat: string; lon: string; display_name?: string }
+interface ResultadoNominatim {
+  lat: string;
+  lon: string;
+  display_name?: string;
+  address?: {
+    road?: string;
+    house_number?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
+    state?: string;
+    postcode?: string;
+  };
+}
 const route = useRoute();
+const auth = useAuthStore();
 const centro = ref<Punto>({ latitud: -33.3017, longitud: -66.3378 });
 const es_ubicacion_proveedor = computed(() => route.query.proveedor === "true");
 const nombre_proveedor = computed(() => String(route.query.nombre ?? "Proveedor"));
@@ -59,6 +113,17 @@ const buscando = ref(false);
 const cargando_gps = ref(false);
 const mensaje = ref("");
 const es_error = ref(false);
+const modal_direccion_abierto = ref(false);
+const guardando_direccion = ref(false);
+const direccion_existente = ref<Direccion | null>(null);
+const formulario_direccion = reactive({
+  calle: "",
+  numero: "",
+  ciudad: "",
+  provincia: "",
+  codigoPostal: "",
+  referencia: "",
+});
 
 watch(() => route.query, (query) => {
   const latitud = Number(query.lat);
@@ -94,25 +159,151 @@ async function buscar_direccion() {
     mapa_visible.value = true;
     ubicacion_confirmada.value = null;
     mensaje.value = "Resultado ubicado en el mapa. Mové el punto si hace falta y confirmalo.";
-  } catch (error) { mensaje.value = error instanceof Error ? error.message : "No se pudo consultar la dirección. Podés seguir eligiendo el punto en el mapa."; es_error.value = true; }
+  } catch (error) {
+    mensaje.value = error instanceof TypeError
+      ? "No pudimos conectar con el servicio de búsqueda. Revisá internet o elegí el punto moviendo el mapa."
+      : error instanceof Error
+        ? error.message
+        : "No se pudo consultar la dirección. Podés seguir eligiendo el punto en el mapa.";
+    es_error.value = true;
+  }
   finally { buscando.value = false; }
 }
 
 async function confirmar_punto() {
-  buscando.value = true; mensaje.value = ""; es_error.value = false;
+  mensaje.value = "";
+  es_error.value = false;
   const { latitud, longitud } = centro.value;
+  if (es_ubicacion_proveedor.value) {
+    ubicacion_confirmada.value = {
+      latitud,
+      longitud,
+      direccion: direccion_busqueda.value.trim() || "Punto confirmado",
+    };
+    mensaje.value = "Punto del proveedor confirmado.";
+    return;
+  }
+
+  formulario_direccion.calle = direccion_existente.value?.calle ?? "";
+  formulario_direccion.numero = direccion_existente.value?.numero ?? "";
+  formulario_direccion.ciudad = direccion_existente.value?.ciudad ?? "";
+  formulario_direccion.provincia = direccion_existente.value?.provincia ?? "";
+  formulario_direccion.codigoPostal = direccion_existente.value?.codigoPostal ?? "";
+  formulario_direccion.referencia = direccion_existente.value?.referencia ?? "";
   try {
+    buscando.value = true;
+    if (!(await hay_conexion())) {
+      throw new Error("Sin conexión: completá los datos de la dirección manualmente.");
+    }
     const parametros = new URLSearchParams({ lat: String(latitud), lon: String(longitud), format: "jsonv2", "accept-language": "es" });
     const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${parametros}`);
     if (!response.ok) throw new Error("No se pudo consultar la dirección de este punto.");
-    const resultado = await response.json() as { display_name?: string };
-    ubicacion_confirmada.value = { latitud, longitud, direccion: resultado.display_name ?? "Dirección sin nombre" };
-    mensaje.value = es_ubicacion_proveedor.value ? "Punto del proveedor confirmado." : "Punto confirmado para esta consulta.";
+    const resultado = await response.json() as ResultadoNominatim;
+    const address = resultado.address;
+    formulario_direccion.calle = address?.road ?? "";
+    formulario_direccion.numero = address?.house_number ?? "";
+    formulario_direccion.ciudad = address?.city ?? address?.town ?? address?.village ?? address?.municipality ?? "";
+    formulario_direccion.provincia = address?.state ?? "";
+    formulario_direccion.codigoPostal = address?.postcode ?? "";
+    direccion_busqueda.value = resultado.display_name ?? "";
   } catch (error) {
-    ubicacion_confirmada.value = { latitud, longitud, direccion: direccion_busqueda.value.trim() || "Dirección no disponible; se conservan las coordenadas." };
-    mensaje.value = error instanceof Error ? `${error.message} Las coordenadas del punto siguen disponibles.` : "La dirección no está disponible; se conservan las coordenadas.";
+    mensaje.value = error instanceof TypeError
+      ? "No pudimos conectar con el servicio de direcciones. Completá los datos manualmente."
+      : error instanceof Error
+        ? error.message
+        : "No se pudo consultar la dirección. Completá los datos manualmente.";
     es_error.value = true;
-  } finally { buscando.value = false; }
+  } finally {
+    buscando.value = false;
+    modal_direccion_abierto.value = true;
+  }
+}
+
+async function guardar_direccion() {
+  const usuario_id = String(auth.usuario?.id ?? "");
+  if (!usuario_id) {
+    mensaje.value = "No se pudo identificar al usuario autenticado.";
+    es_error.value = true;
+    return;
+  }
+
+  const request: GuardarDireccionRequest = {
+    calle: formulario_direccion.calle.trim(),
+    numero: formulario_direccion.numero.trim(),
+    ciudad: formulario_direccion.ciudad.trim(),
+    provincia: formulario_direccion.provincia.trim(),
+    codigoPostal: formulario_direccion.codigoPostal.trim(),
+    referencia: formulario_direccion.referencia.trim() || null,
+    latitud: centro.value.latitud,
+    longitud: centro.value.longitud,
+  };
+  if (
+    !request.calle ||
+    !request.numero ||
+    !request.ciudad ||
+    !request.provincia ||
+    !request.codigoPostal
+  ) {
+    mensaje.value = "Completá calle, número, ciudad, provincia y código postal.";
+    es_error.value = true;
+    return;
+  }
+
+  guardando_direccion.value = true;
+  try {
+    const guardada = direccion_existente.value
+      ? await actualizar_direccion(request)
+      : await crear_direccion(request);
+    direccion_existente.value = guardada;
+    actualizar_cache_direccion(usuario_id, guardada);
+    ubicacion_confirmada.value = {
+      latitud: guardada.latitud,
+      longitud: guardada.longitud,
+      direccion: [guardada.calle, guardada.numero, guardada.ciudad, guardada.provincia].join(", "),
+    };
+    mensaje.value = "Tu dirección y ubicación se guardaron correctamente.";
+    es_error.value = false;
+    modal_direccion_abierto.value = false;
+  } catch (error) {
+    mensaje.value = error instanceof Error ? error.message : "No se pudo guardar la dirección.";
+    es_error.value = true;
+  } finally {
+    guardando_direccion.value = false;
+  }
+}
+
+function cerrar_modal_direccion() {
+  if (!guardando_direccion.value) modal_direccion_abierto.value = false;
+}
+
+async function cargar_direccion_usuario() {
+  if (es_ubicacion_proveedor.value) return;
+  const usuario_id = String(auth.usuario?.id ?? "");
+  if (!usuario_id) return;
+  let direccion: Direccion | null = null;
+  if (await hay_conexion()) {
+    try {
+      direccion = await obtener_mi_direccion();
+      actualizar_cache_direccion(usuario_id, direccion);
+    } catch (error) {
+      direccion = obtener_direccion_cache(usuario_id);
+      if (!direccion) {
+        mensaje.value = error instanceof Error ? error.message : "No se pudo cargar tu dirección.";
+        es_error.value = true;
+      }
+    }
+  } else {
+    direccion = obtener_direccion_cache(usuario_id);
+  }
+  direccion_existente.value = direccion;
+  if (direccion) {
+    centro.value = { latitud: direccion.latitud, longitud: direccion.longitud };
+    ubicacion_confirmada.value = {
+      latitud: direccion.latitud,
+      longitud: direccion.longitud,
+      direccion: [direccion.calle, direccion.numero, direccion.ciudad, direccion.provincia].join(", "),
+    };
+  }
 }
 
 async function usar_ubicacion_actual() {
@@ -125,6 +316,8 @@ async function usar_ubicacion_actual() {
   } catch (error) { mensaje.value = error instanceof Error ? error.message : "No se pudo obtener la ubicación. Podés buscar una dirección o mover el mapa."; es_error.value = true; }
   finally { cargando_gps.value = false; }
 }
+
+onIonViewWillEnter(() => { void cargar_direccion_usuario(); });
 </script>
 
 <style scoped>
@@ -145,5 +338,8 @@ async function usar_ubicacion_actual() {
 .syner-ubicacion__mensaje { margin: 14px 2px 0; color: var(--syner-success); }
 .syner-ubicacion__mensaje--error { color: var(--ion-color-danger); }
 .syner-ubicacion__atribucion { margin: 12px 2px 0; color: var(--syner-text-secondary); font-size: 12px; }
+.syner-ubicacion__formulario { display: grid; gap: 14px; color: var(--syner-text); }
+.syner-ubicacion__formulario ion-input, .syner-ubicacion__formulario ion-textarea { --background: var(--syner-surface); --color: var(--syner-text); --label-color: var(--syner-text-secondary); --border-color: var(--syner-border); }
+.syner-ubicacion__formulario .syner-ubicacion__coordenadas { margin: 0; color: var(--syner-text-secondary); font-size: 13px; }
 @media (max-width: 560px) { .syner-ubicacion__busqueda { grid-template-columns: 1fr; } .syner-ubicacion__busqueda ion-button { width: 100%; } .syner-ubicacion__acciones ion-button { flex: 1 1 100%; } .syner-ubicacion__coordenadas { grid-template-columns: auto 1fr !important; } }
 </style>

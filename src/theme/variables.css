@@ -98,3 +98,46 @@ ion-card {
   border-radius: var(--syner-radius);
   box-shadow: var(--syner-shadow);
 }
+
+ion-button {
+  --border-radius: 16px;
+  font-weight: 650;
+}
+
+ion-button:not([fill="clear"]):not([fill="outline"]) {
+  --background: linear-gradient(
+    135deg,
+    var(--ion-color-primary),
+    var(--ion-color-primary-shade)
+  );
+  --box-shadow: 0 7px 18px color-mix(in srgb, var(--ion-color-primary) 24%, transparent);
+}
+
+ion-button[color="danger"]:not([fill="clear"]):not([fill="outline"]) {
+  --background: linear-gradient(
+    135deg,
+    var(--ion-color-danger),
+    var(--ion-color-danger-shade)
+  );
+  --box-shadow: 0 7px 18px color-mix(in srgb, var(--ion-color-danger) 22%, transparent);
+}
+
+ion-button[color="success"]:not([fill="clear"]):not([fill="outline"]) {
+  --background: linear-gradient(
+    135deg,
+    var(--ion-color-success),
+    var(--ion-color-success-shade)
+  );
+  --box-shadow: 0 7px 18px color-mix(in srgb, var(--ion-color-success) 22%, transparent);
+}
+
+ion-button[fill="outline"] {
+  --border-width: 0;
+  --background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+ion-input,
+ion-textarea,
+ion-select {
+  --border-radius: 12px;
+}

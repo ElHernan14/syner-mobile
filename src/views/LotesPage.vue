@@ -63,6 +63,7 @@
           <comp-lote-card
             :lote="lote"
             :puede-gestionar="es_admin"
+            @seleccionar="abrir_detalle_lote"
             @editar="editar_lote"
             @eliminar="eliminar_lote_confirmar"
           >
@@ -137,19 +138,19 @@
           </div>
 
           <!-- Acción del usuario -->
-          <div v-if="es_usuario && !tiene_pedido_activo(lote.id)" class="syner-lotes__usuario-acciones">
+          <div v-if="es_usuario" class="syner-lotes__usuario-acciones">
+            <ion-chip v-if="tiene_pedido_activo(lote.id)" color="success">
+              <ion-icon :icon="ticket_outline" />
+              <ion-label>Cupo ya adquirido</ion-label>
+            </ion-chip>
             <ion-button
+              v-else
               expand="block"
               :disabled="lote.estado !== 'fondeando' || pedidos_store.cargando.value"
               @click="adquirir_cupo(lote)"
             >
               <ion-icon :icon="ticket_outline" slot="start" />
-
-              {{
-                lote.estado === "fondeando"
-                  ? "Quiero mi Cupo"
-                  : "Cupo no disponible"
-              }}
+              {{ lote.estado === "fondeando" ? "Quiero mi cupo" : "Cupo no disponible" }}
             </ion-button>
           </div>
             </template>
@@ -168,6 +169,7 @@
     <ion-modal
       v-if="es_admin"
       :is-open="mostrar_formulario"
+      :can-dismiss="!procesando_formulario"
       @did-dismiss="cerrar_formulario"
     >
       <ion-header>
@@ -177,7 +179,7 @@
           </ion-title>
 
           <ion-buttons slot="end">
-            <ion-button :disabled="procesando" @click="cerrar_formulario">
+            <ion-button :disabled="procesando_formulario" @click="cerrar_formulario">
               Cerrar
             </ion-button>
           </ion-buttons>
@@ -209,7 +211,7 @@
             v-else
             :lote="lote_seleccionado"
             :proveedores="proveedores"
-            :procesando="procesando"
+            :procesando="procesando_formulario"
             :error="error_formulario"
             @guardar="guardar_lote"
             @cancelar="cerrar_formulario"
@@ -354,12 +356,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 
 import {
   IonAlert,
   IonBadge,
   IonButton,
   IonButtons,
+  IonChip,
   IonContent,
   IonHeader,
   IonIcon,
@@ -382,6 +386,7 @@ import {
   swapVerticalOutline as swap_vertical_outline,
   ticketOutline as ticket_outline,
 } from "ionicons/icons";
+import { alertController } from "@ionic/vue";
 
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
@@ -414,6 +419,7 @@ import type { CrearLoteRequest } from "@/dtos/lotes/CrearLoteRequest";
 import type { ActualizarLoteRequest } from "@/dtos/lotes/ActualizarLoteRequest";
 
 const auth_store = useAuthStore();
+const router = useRouter();
 
 const es_admin = computed(() => {
   return auth_store.rol === "admin";
@@ -429,7 +435,11 @@ const lotes_visibles = computed(() => es_usuario.value
 
 const pedidos_store = usePedidos();
 function tiene_pedido_activo(lote_id: number): boolean {
-  return pedidos_store.pedidos.value.some((pedido) => Number(pedido.lote.id) === lote_id && pedido.estado.toLowerCase() !== "cancelado");
+  return pedidos_store.pedidos.value.some((pedido) => Number(pedido.lote?.id) === lote_id && pedido.estado.toLowerCase() !== "cancelado");
+}
+
+function abrir_detalle_lote(lote: Lote) {
+  if (lote.id > 0) void router.push({ name: "lote-detalle", params: { id: lote.id } });
 }
 
 const transiciones_estado: Record<EstadoLote, EstadoLote[]> = {
@@ -495,6 +505,10 @@ const enviando_cupo = ref(false);
 const mostrar_formulario = ref(false);
 const lote_seleccionado = ref<Lote | null>(null);
 const error_formulario = ref<string | null>(null);
+const guardando_lote = ref(false);
+const procesando_formulario = computed(
+  () => procesando.value || guardando_lote.value,
+);
 
 const mostrar_confirmacion_baja = ref(false);
 const lote_para_eliminar = ref<Lote | null>(null);
@@ -667,13 +681,13 @@ async function guardar_lote(payload: {
   request: CrearLoteRequest | ActualizarLoteRequest;
   imagen: File | null;
 }) {
-  if (!es_admin.value) {
+  if (!es_admin.value || procesando_formulario.value) {
     return;
   }
 
   error_formulario.value = null;
-
-  const es_edicion = lote_seleccionado.value !== null;
+  const lote_id = lote_seleccionado.value?.id ?? null;
+  guardando_lote.value = true;
 
   try {
     if (payload.imagen && !conectado.value) {
@@ -687,9 +701,9 @@ async function guardar_lote(payload: {
         }
       : payload.request;
 
-    if (es_edicion) {
+    if (lote_id !== null) {
       const lote_actualizado = await actualizar_lote(
-        lote_seleccionado.value!.id,
+        lote_id,
         request as ActualizarLoteRequest,
       );
       const pendiente = operaciones_pendientes.value.some((op) => op.loteId === lote_actualizado.id);
@@ -699,6 +713,7 @@ async function guardar_lote(payload: {
       mostrar_toast_exito(lote_creado.id < 0 ? "El lote quedó guardado en este dispositivo y se creará cuando vuelva la conexión." : "El lote se creó correctamente.");
     }
 
+    guardando_lote.value = false;
     cerrar_formulario();
 
     await cargar_lotes(page.value, termino.value);
@@ -708,11 +723,13 @@ async function guardar_lote(payload: {
 
     error_formulario.value = mensaje;
     mostrar_toast_error(mensaje);
+  } finally {
+    guardando_lote.value = false;
   }
 }
 
 function cerrar_formulario() {
-  if (procesando.value) {
+  if (procesando_formulario.value) {
     return;
   }
 
@@ -901,6 +918,17 @@ async function confirmar_cupo_con_firma() {
     enviando_cupo.value = true;
     const firma = await firma_canvas_ref.value?.obtener_png();
     if (!firma) throw new Error("Firmá dentro del recuadro para continuar.");
+    const confirmacion = await alertController.create({
+      header: "Confirmar adquisición del cupo",
+      message: `Vas a adquirir un cupo para "${lote.nombre}" por ${new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(lote.precioCupo)}. La firma se adjuntará al pedido.`,
+      buttons: [
+        { text: "Revisar firma", role: "cancel" },
+        { text: "Confirmar", role: "confirm" },
+      ],
+    });
+    await confirmacion.present();
+    const { role } = await confirmacion.onDidDismiss();
+    if (role !== "confirm") return;
     await adquirir_cupo_api(lote.id, firma);
 
     mostrar_toast_exito(

@@ -13,7 +13,8 @@ SELECT Id, Nombre, Latitud, Longitud
 FROM proveedores
 ORDER BY Nombre;
 
--- Una vez que se conozcan las coordenadas reales, usar por proveedor:
--- UPDATE proveedores SET Latitud = <LATITUD>, Longitud = <LONGITUD> WHERE Id = 2; -- Hogar Plus Mayorista
--- UPDATE proveedores SET Latitud = <LATITUD>, Longitud = <LONGITUD> WHERE Id = 3; -- Moda Urbana Mayorista
--- UPDATE proveedores SET Latitud = <LATITUD>, Longitud = <LONGITUD> WHERE Id = 1; -- TecnoSur Distribuciones
+-- Puntos sintéticos de demostración en San Luis; no son domicilios reales.
+-- El esquema ya fue creado: ejecutar solo estos UPDATE, no volver a correr los ALTER.
+UPDATE proveedores SET Latitud = -33.2948000, Longitud = -66.3425000 WHERE Id = 2; -- Hogar Plus Mayorista
+UPDATE proveedores SET Latitud = -33.3054000, Longitud = -66.3258000 WHERE Id = 3; -- Moda Urbana Mayorista
+UPDATE proveedores SET Latitud = -33.3142000, Longitud = -66.3461000 WHERE Id = 1; -- TecnoSur Distribuciones

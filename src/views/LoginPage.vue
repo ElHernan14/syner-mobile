@@ -32,16 +32,27 @@
             <ion-item>
               <ion-input
                 v-model="password"
-                type="password"
                 label="Contraseña *"
                 label-placement="stacked"
                 placeholder="Ingresá tu contraseña"
                 autocomplete="current-password"
                 required
+                :type="mostrar_password ? 'text' : 'password'"
                 :aria-invalid="!!errores.password"
                 :disabled="cargando"
                 @ion-input="errores.password = ''"
               />
+              <ion-button
+                slot="end"
+                type="button"
+                fill="clear"
+                class="syner-login__password-toggle"
+                :aria-label="mostrar_password ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                :disabled="cargando"
+                @click="mostrar_password = !mostrar_password"
+              >
+                <ion-icon :icon="mostrar_password ? eyeOffOutline : eyeOutline" />
+              </ion-button>
             </ion-item>
             <p v-if="errores.password" class="syner-login__field-error" role="alert">{{ errores.password }}</p>
             </div>
@@ -61,6 +72,7 @@
               <span v-else>Ingresar</span>
             </ion-button>
             <ion-button v-if="es_android" class="syner-login__google" type="button" expand="block" fill="outline" :disabled="cargando" @click="iniciar_sesion_con_google">
+              <span class="syner-login__google-mark" aria-hidden="true">G</span>
               Continuar con Google
             </ion-button>
             <ion-button type="button" expand="block" fill="clear" :disabled="cargando" @click="router.push('/catalogo')">
@@ -81,12 +93,14 @@ import {
   IonButton,
   IonContent,
   IonInput,
+  IonIcon,
   IonItem,
   IonPage,
   IonSpinner,
 } from "@ionic/vue";
 
 import { useRouter } from "vue-router";
+import { eyeOffOutline, eyeOutline } from "ionicons/icons";
 
 import { useAuth } from "@/composables/useAuth";
 
@@ -97,6 +111,7 @@ const { cargando, error: error_auth, iniciar_sesion: iniciar_sesion_auth, inicia
 
 const correo = ref("");
 const password = ref("");
+const mostrar_password = ref(false);
 const errores = reactive({ correo: "", password: "" });
 const error = computed(() => error_auth.value || "");
 
@@ -142,6 +157,21 @@ async function iniciar_sesion_con_google() {
 
 .syner-login__container {
   width: min(100%, 420px);
+}
+
+.syner-login__password-toggle {
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
+.syner-login__google-mark {
+  margin-right: 10px;
+  background: conic-gradient(#4285f4 0 25%, #34a853 25% 50%, #fbbc05 50% 75%, #ea4335 75%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 21px;
+  font-weight: 800;
 }
 
 .syner-login__header {

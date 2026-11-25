@@ -51,5 +51,7 @@ npm-debug.log*
 /Syner.Api/firebase/*.json
 
 # ASP.NET
-/Syner.Api/wwwroot/
+/Syner.Api/wwwroot/*
+!/Syner.Api/wwwroot/assets/
+!/Syner.Api/wwwroot/assets/lote-default.webp
 /Syner.Api/publish/

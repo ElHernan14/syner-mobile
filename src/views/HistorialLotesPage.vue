@@ -17,36 +17,78 @@
         </article>
       </div>
       <comp-paginacion v-if="total_paginas > 1" :pagina="pagina" :total_paginas="total_paginas" @cambiar="cambiar_pagina" />
-      <p v-if="error && items.length" class="syner-historial__aviso">{{ error }}</p>
+      <p v-if="usando_cache" class="syner-historial__aviso">
+        Sin conexión: se muestra el historial guardado en este dispositivo.
+      </p>
+      <p v-else-if="error && items.length" class="syner-historial__aviso">{{ error }}</p>
     </div>
   </comp-page>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import { IonIcon } from "@ionic/vue";
+import { ref } from "vue";
+import { IonIcon, onIonViewWillEnter } from "@ionic/vue";
 import { arrowForwardOutline, swapHorizontalOutline, timeOutline } from "ionicons/icons";
 import CompPage from "@/components/shared/comp_page.vue";
 import CompEsqueleto from "@/components/shared/comp_esqueleto.vue";
 import CompEstadoListado from "@/components/shared/comp_estado_listado.vue";
 import CompEstadoBadge from "@/components/shared/comp_estado_badge.vue";
 import CompPaginacion from "@/components/shared/comp_paginacion.vue";
-import { obtener_historial_lotes, type HistorialLoteItem } from "@/services/historial_lotes_service";
+import {
+  obtener_historial_lotes,
+  obtener_cache_historial_lotes,
+  guardar_cache_historial_lotes,
+  type HistorialLoteItem,
+} from "@/services/historial_lotes_service";
+import { hay_conexion } from "@/services/conectividad_service";
+import { useAuthStore } from "@/stores/auth_store";
 
+const auth = useAuthStore();
+const LIMITE = 20;
 const items = ref<HistorialLoteItem[]>([]);
 const pagina = ref(1);
 const total_paginas = ref(0);
 const cargando = ref(false);
 const error = ref("");
+const usando_cache = ref(false);
 async function cargar(nueva_pagina = pagina.value) {
-  cargando.value = true; error.value = "";
-  try { const resultado = await obtener_historial_lotes(nueva_pagina); items.value = resultado.datos; pagina.value = resultado.page; total_paginas.value = resultado.totalPaginas; }
-  catch (e) { error.value = e instanceof Error ? e.message : "No se pudo cargar el historial."; }
-  finally { cargando.value = false; }
+  cargando.value = true;
+  error.value = "";
+  usando_cache.value = false;
+  const usuario_id = String(auth.usuario?.id ?? "");
+  try {
+    if (!(await hay_conexion())) {
+      const cache = obtener_cache_historial_lotes(usuario_id, nueva_pagina, LIMITE);
+      if (!cache) throw new Error("No hay conexión ni historial guardado para esta página.");
+      items.value = cache.datos;
+      pagina.value = cache.page;
+      total_paginas.value = cache.totalPaginas;
+      usando_cache.value = true;
+      return;
+    }
+
+    const resultado = await obtener_historial_lotes(nueva_pagina, LIMITE);
+    items.value = resultado.datos;
+    pagina.value = resultado.page;
+    total_paginas.value = resultado.totalPaginas;
+    guardar_cache_historial_lotes(usuario_id, nueva_pagina, LIMITE, resultado);
+  } catch (e) {
+    const cache = obtener_cache_historial_lotes(usuario_id, nueva_pagina, LIMITE);
+    if (cache) {
+      items.value = cache.datos;
+      pagina.value = cache.page;
+      total_paginas.value = cache.totalPaginas;
+      usando_cache.value = true;
+    } else {
+      error.value = e instanceof Error ? e.message : "No se pudo cargar el historial.";
+    }
+  } finally {
+    cargando.value = false;
+  }
 }
 function cambiar_pagina(nueva_pagina: number) { void cargar(nueva_pagina); }
 function fecha(valor: string) { const fecha = new Date(valor); return Number.isNaN(fecha.getTime()) ? valor : fecha.toLocaleString("es-AR", { dateStyle: "medium", timeStyle: "short" }); }
-onMounted(() => { void cargar(1); });
+onIonViewWillEnter(() => { void cargar(1); });
 </script>
 
 <style scoped>

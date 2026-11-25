@@ -22,6 +22,73 @@ namespace Syner.Api.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("Syner.Api.Domain.Entities.Direccion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Calle")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Ciudad")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("CodigoPostal")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("EsPrincipal")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("FechaActualizacion")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("FechaEliminacion")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("Latitud")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("decimal(10,7)");
+
+                    b.Property<decimal>("Longitud")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("decimal(10,7)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Provincia")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Referencia")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<long>("UsuarioId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "EsPrincipal", "FechaEliminacion");
+
+                    b.ToTable("direcciones", (string)null);
+                });
+
             modelBuilder.Entity("Syner.Api.Domain.Entities.Dispositivo", b =>
                 {
                     b.Property<long>("Id")
@@ -410,6 +477,17 @@ namespace Syner.Api.Migrations
                     b.ToTable("usuarios", (string)null);
                 });
 
+            modelBuilder.Entity("Syner.Api.Domain.Entities.Direccion", b =>
+                {
+                    b.HasOne("Syner.Api.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("Direcciones")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("Syner.Api.Domain.Entities.Dispositivo", b =>
                 {
                     b.HasOne("Syner.Api.Domain.Entities.Usuario", "Usuario")
@@ -509,6 +587,8 @@ namespace Syner.Api.Migrations
 
             modelBuilder.Entity("Syner.Api.Domain.Entities.Usuario", b =>
                 {
+                    b.Navigation("Direcciones");
+
                     b.Navigation("Dispositivos");
 
                     b.Navigation("Notificaciones");

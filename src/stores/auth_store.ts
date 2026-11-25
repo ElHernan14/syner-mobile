@@ -235,6 +235,10 @@ export const useAuthStore = defineStore("auth", () => {
       await registrar_push_despues_autenticacion();
       return respuesta;
     } catch (err) {
+      if (err instanceof Error && err.message.includes("Se canceló el ingreso con Google.")) {
+        error.value = null;
+        throw err;
+      }
       const mensaje = obtener_mensaje_error(err, "No se pudo iniciar sesión con Google.");
       error.value = mensaje;
       throw new Error(mensaje);

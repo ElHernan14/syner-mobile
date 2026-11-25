@@ -1,11 +1,11 @@
 <template>
-  <ion-card class="syner-lote-card">
+  <ion-card class="syner-lote-card" button @click="$emit('seleccionar', lote)">
     <img
-      v-if="imagen_url"
       class="syner-lote-card__image"
       :src="imagen_url"
       :alt="`Imagen del lote ${lote.nombre}`"
       loading="lazy"
+      @error="usar_imagen_respaldo"
     />
     <ion-card-header>
       <div class="syner-lote-card__header">
@@ -68,7 +68,7 @@
             v-if="puede_editar"
             fill="clear"
             size="small"
-            @click="$emit('editar', lote)"
+            @click.stop="$emit('editar', lote)"
           >
             Editar
           </ion-button>
@@ -78,14 +78,14 @@
             fill="clear"
             color="danger"
             size="small"
-            @click="$emit('eliminar', lote)"
+            @click.stop="$emit('eliminar', lote)"
           >
             Dar de baja
           </ion-button>
         </div>
       </div>
 
-      <div v-if="$slots.extras" class="syner-lote-card__extras">
+      <div v-if="$slots.extras" class="syner-lote-card__extras" @click.stop>
         <slot name="extras" />
       </div>
     </ion-card-content>
@@ -115,6 +115,7 @@ const props = defineProps<{
 }>();
 
 defineEmits<{
+  seleccionar: [lote: Lote];
   editar: [lote: Lote];
   eliminar: [lote: Lote];
 }>();
@@ -127,7 +128,17 @@ const progreso = computed(() => {
   return Math.min(props.lote.cuposOcupados / props.lote.cantidadCupos, 1);
 });
 
-const imagen_url = computed(() => url_imagen_lote(props.lote.imagenAvatar));
+const IMAGEN_LOTE_DEFAULT = "/assets/lote-default.webp";
+const imagen_url = computed(() =>
+  url_imagen_lote(props.lote.imagenAvatar) ?? IMAGEN_LOTE_DEFAULT,
+);
+
+function usar_imagen_respaldo(evento: Event) {
+  const imagen = evento.currentTarget;
+  if (imagen instanceof HTMLImageElement && !imagen.src.endsWith(IMAGEN_LOTE_DEFAULT)) {
+    imagen.src = IMAGEN_LOTE_DEFAULT;
+  }
+}
 
 const fecha_fin = computed(() => {
   return new Date(props.lote.fechaFin).toLocaleDateString("es-AR");
